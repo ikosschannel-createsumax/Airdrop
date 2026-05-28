@@ -1,0 +1,30 @@
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "User profile with mining progress, role, and balances",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "passwordHash": { "type": "string" },
+        "username": { "type": "string" },
+        "minerTag": { "type": "string" },
+        "avatar": { "type": "string" },
+        "role": { "type": "string" },
+        "level": { "type": "number" },
+        "experience": { "type": "number" },
+        "ldrBalance": { "type": "number" },
+        "rupiahBalance": { "type": "number" },
+        "highScore": { "type": "number" },
+        "registeredAt": { "type": "string" }
+      },
+      "required": ["email", "username"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "Active user accounts with level and balances"
+    }
+  }
+}

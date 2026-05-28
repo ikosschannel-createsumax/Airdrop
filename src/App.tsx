@@ -20,6 +20,7 @@ import PayoutSystem from "./components/PayoutSystem";
 import MarketAnalytics from "./components/MarketAnalytics";
 import AdminPanel from "./components/AdminPanel";
 import { setMuteState, getMuteState, playClickSound, playUpgradeSound } from "./utils/audio";
+import { syncUserProfileToFirebase } from "./utils/firebase";
 import { 
   Volume2, 
   VolumeX, 
@@ -138,10 +139,38 @@ export default function App() {
     setIsMuted(muted);
   }, []);
 
-  // Sync profile & variables changes to localStorage
+  // Sync profile & variables changes to localStorage & Firebase Firestore database
   const saveProfileData = (updatedProfile: MinerProfile) => {
     setProfile(updatedProfile);
     localStorage.setItem("ldr_miner_profile", JSON.stringify(updatedProfile));
+
+    const activeEmail = localStorage.getItem("ldr_active_email");
+    if (activeEmail) {
+      try {
+        const savedUsers = localStorage.getItem("ldr_registered_users");
+        if (savedUsers) {
+          const users = JSON.parse(savedUsers) as any[];
+          const userAccount = users.find(u => u.email.toLowerCase() === activeEmail.toLowerCase());
+          const passwordHash = userAccount?.passwordHash || "demo1234";
+
+          // Update local list
+          const updatedUsers = users.map(u => {
+            if (u.email.toLowerCase() === activeEmail.toLowerCase()) {
+              return { ...u, profile: updatedProfile };
+            }
+            return u;
+          });
+          localStorage.setItem("ldr_registered_users", JSON.stringify(updatedUsers));
+
+          // Non-blocking sync to active Firebase database
+          syncUserProfileToFirebase(activeEmail, passwordHash, updatedProfile).catch(err => {
+            console.warn("Could not sync updated miner profile to Firebase:", err);
+          });
+        }
+      } catch (err) {
+        console.error("Failed to sync updated miner profile:", err);
+      }
+    }
   };
 
   const handleDeductBalance = (amount: number) => {
@@ -516,6 +545,7 @@ export default function App() {
   const handleClearDataAndReset = () => {
     if (!window.confirm("Apakah Anda yakin ingin menghapus seluruh data profil dan menghentikan penambangan?")) return;
     playClickSound();
+    localStorage.removeItem("ldr_active_email");
     localStorage.removeItem("ldr_miner_profile");
     localStorage.removeItem("ldr_miner_rigs");
     localStorage.removeItem("ldr_miner_achievements");

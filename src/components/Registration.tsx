@@ -25,6 +25,10 @@ import {
 } from "lucide-react";
 import { MinerProfile } from "../types";
 import { playClickSound, playUpgradeSound } from "../utils/audio";
+import { 
+  syncUserProfileToFirebase, 
+  fetchAllUsersFromFirebase 
+} from "../utils/firebase";
 
 interface RegistrationProps {
   onComplete: (profile: MinerProfile) => void;
@@ -59,19 +63,54 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
   const [userEnteredOtp, setUserEnteredOtp] = useState("");
   const [tempProfile, setTempProfile] = useState<MinerProfile | null>(null);
 
+  // Forgot password assistant states
+  const [showForgotHelper, setShowForgotHelper] = useState(false);
+  const [forgotInputEmail, setForgotInputEmail] = useState("");
+  const [forgotFeedback, setForgotFeedback] = useState("");
+  const [forgotSucc, setForgotSucc] = useState("");
+
+  const handleRequestForgotPassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    playClickSound();
+    setForgotFeedback("");
+    setForgotSucc("");
+
+    const targetEmail = forgotInputEmail.toLowerCase().trim();
+    if (!targetEmail) {
+      setForgotFeedback("Silakan masukkan alamat email terlebih dahulu!");
+      return;
+    }
+
+    const matchedUser = registeredUsers.find(u => u.email.toLowerCase() === targetEmail);
+    if (!matchedUser) {
+      setForgotFeedback("Alamat email tidak terdaftar di reaktor LDR Coin. Harap daftarkan baru!");
+      return;
+    }
+
+    playUpgradeSound();
+    setForgotSucc(`KOSMOLOGI VERIFIKASI: Akun "${matchedUser.profile.username}" ditemukan! Kata sandi saat ini: ${matchedUser.passwordHash}. (Anda juga dapat merubah sandi akun ini di 🔐 PANEL ADMIN).`);
+  };
+
   // Seeding mock logins to make it immediately testable or list old loggers
   const [registeredUsers, setRegisteredUsers] = useState<LocalUserCredentials[]>([]);
 
   useEffect(() => {
     const saved = localStorage.getItem("ldr_registered_users");
+    let initialList: LocalUserCredentials[] = [];
+    let updatedNeeded = false;
+
     if (saved) {
       try {
-        setRegisteredUsers(JSON.parse(saved));
+        initialList = JSON.parse(saved);
       } catch (e) {
         console.error("Gagal memuat pengguna terdaftar:", e);
       }
     } else {
-      // Seed an initial user for testing login
+      updatedNeeded = true;
+    }
+
+    // Ensure BaraMan (demo account) exists
+    if (!initialList.some(u => u.email.toLowerCase() === "demo@ldrcoin.com")) {
       const sampleProfile: MinerProfile = {
         username: "BaraMan",
         minerTag: "baraman#7391",
@@ -90,10 +129,106 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
         passwordHash: "demo1234", // Simple credentials for testing
         profile: sampleProfile
       };
-      const initialList = [seedUser];
-      setRegisteredUsers(initialList);
+      initialList.push(seedUser);
+      updatedNeeded = true;
+      syncUserProfileToFirebase("demo@ldrcoin.com", "demo1234", sampleProfile).catch(() => {});
+    }
+
+    // Ensure Kusumax exists so administrator or Kusumax functions are active
+    if (!initialList.some(u => u.email.toLowerCase() === "kusumax@ldrcoin.com" || u.profile?.username?.toLowerCase() === "kusumax")) {
+      const sampleProfile2: MinerProfile = {
+        username: "Kusumax",
+        minerTag: "kusumax#9988",
+        avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Kusumax",
+        role: "broker",
+        level: 8,
+        experience: 24500,
+        ldrBalance: 580.0,
+        rupiahBalance: 245000,
+        highScore: 7850,
+        registeredAt: new Date(Date.now() - 36000000 * 4).toISOString()
+      };
+      
+      const seedUser2: LocalUserCredentials = {
+        email: "kusumax@ldrcoin.com",
+        passwordHash: "kusuma123x", // Starting default password
+        profile: sampleProfile2
+      };
+      initialList.push(seedUser2);
+      updatedNeeded = true;
+      syncUserProfileToFirebase("kusumax@ldrcoin.com", "kusuma123x", sampleProfile2).catch(() => {});
+    }
+
+    // Ensure the requested admin account kusumaletterformee@gmail.com exists with Kusumax privileges
+    if (!initialList.some(u => u.email.toLowerCase() === "kusumaletterformee@gmail.com" || u.profile?.username?.toLowerCase() === "kusumaletterformee")) {
+      const sampleProfile3: MinerProfile = {
+        username: "Kusumaletterformee",
+        minerTag: "kusuma#8899",
+        avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Kusumaletterformee",
+        role: "broker",
+        level: 10,
+        experience: 99999,
+        ldrBalance: 1000.0,
+        rupiahBalance: 500000,
+        highScore: 9999,
+        registeredAt: new Date().toISOString()
+      };
+
+      const seedUser3: LocalUserCredentials = {
+        email: "kusumaletterformee@gmail.com",
+        passwordHash: "kusuma123x", // Starting default password as requested for recovery
+        profile: sampleProfile3
+      };
+      initialList.push(seedUser3);
+      updatedNeeded = true;
+      syncUserProfileToFirebase("kusumaletterformee@gmail.com", "kusuma123x", sampleProfile3).catch(() => {});
+    }
+
+    setRegisteredUsers(initialList);
+    if (updatedNeeded) {
       localStorage.setItem("ldr_registered_users", JSON.stringify(initialList));
     }
+
+    // Pull from Firestore database and merge dynamically
+    fetchAllUsersFromFirebase()
+      .then((firebaseUsers) => {
+        if (firebaseUsers && firebaseUsers.length > 0) {
+          const mapped: LocalUserCredentials[] = firebaseUsers.map(u => ({
+            email: u.email,
+            passwordHash: u.passwordHash,
+            profile: {
+              username: u.username,
+              minerTag: u.minerTag,
+              avatar: u.avatar,
+              role: u.role,
+              level: u.level,
+              experience: u.experience,
+              ldrBalance: u.ldrBalance,
+              rupiahBalance: u.rupiahBalance,
+              highScore: u.highScore,
+              registeredAt: u.registeredAt
+            }
+          }));
+
+          const mergedMap = new Map<string, LocalUserCredentials>();
+          // local first
+          initialList.forEach(u => mergedMap.set(u.email.toLowerCase(), u));
+          // firebase overwrites/adds
+          mapped.forEach(u => mergedMap.set(u.email.toLowerCase(), u));
+
+          const mergedList = Array.from(mergedMap.values());
+          setRegisteredUsers(mergedList);
+          localStorage.setItem("ldr_registered_users", JSON.stringify(mergedList));
+        } else {
+          // Sync all local preseeded users on first boot
+          initialList.forEach(user => {
+            syncUserProfileToFirebase(user.email, user.passwordHash, user.profile).catch(() => {});
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not load users from Firebase on boot, using preseeded local cache:", err);
+      });
   }, []);
 
   // Save utility helper
@@ -106,6 +241,11 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
     const updated = [freshUser, ...registeredUsers.filter(u => u.email !== emailInput.toLowerCase().trim())];
     setRegisteredUsers(updated);
     localStorage.setItem("ldr_registered_users", JSON.stringify(updated));
+
+    // Async save profile details out to Firebase
+    syncUserProfileToFirebase(emailInput, passInput, profileInput).catch(err => {
+      console.error("Failed to sync profile to active Firebase Firestore: ", err);
+    });
   };
 
   // Switch tabs
@@ -179,6 +319,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
         // Success login loads their active profiles
         playUpgradeSound();
         setSuccessMessage(`Berhasil masuk! Selamat datang kembali, ${foundUser.profile.username}.`);
+        localStorage.setItem("ldr_active_email", foundUser.email.toLowerCase().trim());
         setTimeout(() => {
           onComplete(foundUser.profile);
         }, 1200);
@@ -252,6 +393,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
         // Save user details
         saveUserCredentials(email, password, tempProfile);
         
+        localStorage.setItem("ldr_active_email", email.toLowerCase().trim());
         setSuccessMessage(`Akun baru ${tempProfile.username} berhasil terdaftar dan diverifikasi! Memuat stasiun...`);
         setShowOtpScreen(false);
         setUserEnteredOtp("");
@@ -379,6 +521,75 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
                   </button>
                 </div>
               </form>
+              
+            </div>
+          </div>
+        )}
+
+        {/* LUPA PASSWORD ASSISTANT OVERLAY MODAL */}
+        {showForgotHelper && (
+          <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-6 z-50 animate-fade-in text-center">
+            <div className="max-w-md w-full bg-[#131722] border border-amber-500/50 rounded-2xl p-6 md:p-8 shadow-2xl relative">
+              <div className="bg-amber-500/10 text-amber-400 rounded-full h-12 w-12 flex items-center justify-center mx-auto mb-4 border border-amber-500/20 animate-pulse">
+                <KeyRound size={24} />
+              </div>
+
+              <h3 className="text-xl font-bold text-white tracking-tight">Otentikasi & Lupa Password</h3>
+              <p className="text-xs text-gray-400 mt-2 leading-relaxed font-mono">
+                Federasi LDR Coin dapat memulihkan kata sandi lokal akun Anda secara instan. Silakan masukkan alamat email yang terdaftar.
+              </p>
+
+              <form onSubmit={handleRequestForgotPassword} className="space-y-4 my-4">
+                <div>
+                  <label className="block text-[10px] font-mono text-left uppercase tracking-wider text-gray-400 mb-1">
+                    ALAMAT EMAIL OPERATOR:
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={forgotInputEmail}
+                    onChange={(e) => {
+                      setForgotInputEmail(e.target.value);
+                      setForgotFeedback("");
+                      setForgotSucc("");
+                    }}
+                    placeholder="Contoh: kusumax@ldrcoin.com"
+                    className="w-full text-center text-sm font-mono py-2.5 bg-gray-900 border border-gray-750 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
+                  />
+                </div>
+
+                {forgotFeedback && (
+                  <p className="p-2.5 bg-red-950/20 text-red-400 border border-red-900/40 text-[10px] font-mono rounded-lg">
+                    ⚠️ {forgotFeedback}
+                  </p>
+                )}
+
+                {forgotSucc && (
+                  <p className="p-3 bg-emerald-950/20 text-emerald-400 border border-emerald-900/30 text-xs font-mono rounded-lg text-left leading-normal">
+                    💡 {forgotSucc}
+                  </p>
+                )}
+
+                <div className="flex gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => { playClickSound(); setShowForgotHelper(false); }}
+                    className="flex-1 py-2.5 rounded-xl border border-gray-700 text-xs text-gray-400 hover:bg-gray-850 hover:text-white transition uppercase font-bold"
+                  >
+                    Tutup
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-black transition hover:brightness-110 uppercase focus:outline-none"
+                  >
+                    Cari Sandi
+                  </button>
+                </div>
+              </form>
+
+              <div className="border-t border-gray-800/60 pt-3 text-[10px] font-mono text-gray-500 text-left leading-normal">
+                💡 <strong>Catatan Admin:</strong> Anda teridentifikasi sebagai administrator atau pengguna berwenang. Anda juga dapat dengan cepat mengganti, menghapus, atau melihat kata sandi semua operator secara visual pada tab <strong>🔐 PANEL ADMIN</strong> di atas stasiun pertambangan Anda setelah berhasil login!
+              </div>
               
             </div>
           </div>
@@ -519,9 +730,26 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
 
             {/* Input: Password */}
             <div>
-              <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1">
-                KATA SANDI OPERATOR (SECURE PASSWORD):
-              </label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 leading-none">
+                  KATA SANDI OPERATOR (SECURE PASSWORD):
+                </label>
+                {authMode === "login" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClickSound();
+                      setShowForgotHelper(true);
+                      setForgotInputEmail("");
+                      setForgotFeedback("");
+                      setForgotSucc("");
+                    }}
+                    className="text-[10px] font-mono font-black text-amber-400 hover:text-amber-300 hover:underline cursor-pointer select-none leading-none"
+                  >
+                    LUPA PASSWORD?
+                  </button>
+                )}
+              </div>
               <div className="relative rounded-lg shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500">
                   <Lock size={15} />

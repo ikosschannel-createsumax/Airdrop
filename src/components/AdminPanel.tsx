@@ -25,6 +25,11 @@ import {
   Trash2
 } from "lucide-react";
 import { playClickSound, playUpgradeSound } from "../utils/audio";
+import { 
+  updateUserPasswordInFirebase, 
+  deleteUserFromFirebase,
+  fetchAllUsersFromFirebase
+} from "../utils/firebase";
 
 interface AdminPanelProps {
   adminQrisMethod: 'dynamic' | 'static';
@@ -67,6 +72,36 @@ export default function AdminPanel({
   const [newPasswords, setNewPasswords] = useState<Record<string, string>>({});
   const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
 
+  // Sync with Firestore dynamically on mount
+  useEffect(() => {
+    fetchAllUsersFromFirebase()
+      .then((firebaseUsers) => {
+        if (firebaseUsers && firebaseUsers.length > 0) {
+          const mapped = firebaseUsers.map(u => ({
+            email: u.email,
+            passwordHash: u.passwordHash,
+            profile: {
+              username: u.username,
+              minerTag: u.minerTag,
+              avatar: u.avatar,
+              role: u.role,
+              level: u.level,
+              experience: u.experience,
+              ldrBalance: u.ldrBalance,
+              rupiahBalance: u.rupiahBalance,
+              highScore: u.highScore,
+              registeredAt: u.registeredAt
+            }
+          }));
+          setRegisteredUsers(mapped);
+          localStorage.setItem("ldr_registered_users", JSON.stringify(mapped));
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not sync users from Firestore on admin load:", err);
+      });
+  }, []);
+
   const handleUpdatePassword = (email: string, newPass: string) => {
     if (!newPass.trim()) {
       triggerNotification("⚠️ Sandi baru tidak boleh kosong!");
@@ -89,8 +124,13 @@ export default function AdminPanel({
     // Clear the typed input
     setNewPasswords(prev => ({ ...prev, [email]: "" }));
     
+    // Non-blocking update to Firebase Firestore
+    updateUserPasswordInFirebase(email, newPass.trim()).catch(err => {
+      console.error("Firebase password update failed: ", err);
+    });
+
     playUpgradeSound();
-    triggerNotification(`🔐 Sandi akun ${email} berhasil diubah!`);
+    triggerNotification(`🔐 Sandi akun ${email} berhasil diubah di database!`);
   };
 
   const handleDeleteUser = (email: string) => {
@@ -106,8 +146,13 @@ export default function AdminPanel({
     setRegisteredUsers(updated);
     localStorage.setItem("ldr_registered_users", JSON.stringify(updated));
 
+    // Non-blocking deletion in Firebase Firestore
+    deleteUserFromFirebase(email).catch(err => {
+      console.error("Firebase delete user failed: ", err);
+    });
+
     playUpgradeSound();
-    triggerNotification(`❌ Akun ${email} telah berhasil dihapus!`);
+    triggerNotification(`❌ Akun ${email} telah berhasil dihapus dari database!`);
   };
 
   const handleSaveNotification = (field: string) => {

@@ -1,0 +1,192 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  getDocs, 
+  updateDoc, 
+  deleteDoc, 
+  collection,
+  getDocFromServer
+} from "firebase/firestore";
+import { MinerProfile } from "../types";
+import firebaseConfig from "../../firebase-applet-config.json";
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const auth = getAuth(app);
+
+// Test connection on boot as recommended by the Firebase integration guide
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, "test", "connection"));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("offline")) {
+      console.error("Please check your Firebase configuration or network status.");
+    }
+  }
+}
+testConnection();
+
+// Define validation/error handling logic as mandated by SKILL.md
+export enum OperationType {
+  CREATE = "create",
+  UPDATE = "update",
+  DELETE = "delete",
+  LIST = "list",
+  GET = "get",
+  WRITE = "write",
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid || null,
+      email: auth.currentUser?.email || null,
+      emailVerified: auth.currentUser?.emailVerified || null,
+      isAnonymous: auth.currentUser?.isAnonymous || null,
+      tenantId: auth.currentUser?.tenantId || null,
+    },
+    operationType,
+    path
+  };
+  console.error("Firestore Error: ", JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
+// Convert user email to valid document ID
+export function getFirebaseDocId(email: string): string {
+  return email.toLowerCase().trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
+export interface FirebaseUserRecord {
+  email: string;
+  passwordHash: string;
+  username: string;
+  minerTag: string;
+  avatar: string;
+  role: string;
+  level: number;
+  experience: number;
+  ldrBalance: number;
+  rupiahBalance: number;
+  highScore: number;
+  registeredAt: string;
+}
+
+// Sync single user to Firebase database
+export async function syncUserProfileToFirebase(email: string, passwordHash: string, profile: MinerProfile): Promise<boolean> {
+  const docId = getFirebaseDocId(email);
+  const path = `users/${docId}`;
+  
+  const payload: FirebaseUserRecord = {
+    email: email.toLowerCase().trim(),
+    passwordHash: passwordHash,
+    username: profile.username,
+    minerTag: profile.minerTag,
+    avatar: profile.avatar,
+    role: profile.role,
+    level: profile.level,
+    experience: profile.experience,
+    ldrBalance: profile.ldrBalance,
+    rupiahBalance: profile.rupiahBalance,
+    highScore: profile.highScore,
+    registeredAt: profile.registeredAt,
+  };
+
+  try {
+    const docRef = doc(db, "users", docId);
+    await setDoc(docRef, payload);
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+    return false;
+  }
+}
+
+// Fetch single user from Firebase
+export async function fetchUserProfileFromFirebase(email: string): Promise<FirebaseUserRecord | null> {
+  const docId = getFirebaseDocId(email);
+  const path = `users/${docId}`;
+
+  try {
+    const docRef = doc(db, "users", docId);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return snap.data() as FirebaseUserRecord;
+    }
+    return null;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, path);
+    return null;
+  }
+}
+
+// Fetch all registered users from Firebase
+export async function fetchAllUsersFromFirebase(): Promise<FirebaseUserRecord[]> {
+  const path = "users";
+  try {
+    const collRef = collection(db, "users");
+    const snap = await getDocs(collRef);
+    const results: FirebaseUserRecord[] = [];
+    snap.forEach((doc) => {
+      results.push(doc.data() as FirebaseUserRecord);
+    });
+    return results;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+    return [];
+  }
+}
+
+// Update user password in Firebase
+export async function updateUserPasswordInFirebase(email: string, newPasswordHash: string): Promise<boolean> {
+  const docId = getFirebaseDocId(email);
+  const path = `users/${docId}`;
+
+  try {
+    const docRef = doc(db, "users", docId);
+    await updateDoc(docRef, { passwordHash: newPasswordHash });
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+    return false;
+  }
+}
+
+// Delete user from Firebase
+export async function deleteUserFromFirebase(email: string): Promise<boolean> {
+  const docId = getFirebaseDocId(email);
+  const path = `users/${docId}`;
+
+  try {
+    const docRef = doc(db, "users", docId);
+    await deleteDoc(docRef);
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.DELETE, path);
+    return false;
+  }
+}
