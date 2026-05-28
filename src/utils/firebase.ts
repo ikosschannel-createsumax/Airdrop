@@ -16,7 +16,7 @@ import {
   collection,
   getDocFromServer
 } from "firebase/firestore";
-import { MinerProfile } from "../types";
+import { MinerProfile, MiningRig, Achievement } from "../types";
 import firebaseConfig from "../../firebase-applet-config.json";
 
 // Initialize Firebase
@@ -94,10 +94,23 @@ export interface FirebaseUserRecord {
   rupiahBalance: number;
   highScore: number;
   registeredAt: string;
+  // Account-specific structures
+  rigsJson?: string;
+  achievementsJson?: string;
+  dynamiteCount?: number;
+  magnetCount?: number;
 }
 
 // Sync single user to Firebase database
-export async function syncUserProfileToFirebase(email: string, passwordHash: string, profile: MinerProfile): Promise<boolean> {
+export async function syncUserProfileToFirebase(
+  email: string, 
+  passwordHash: string, 
+  profile: MinerProfile,
+  rigs?: MiningRig[],
+  achievements?: Achievement[],
+  dynamiteCount?: number,
+  magnetCount?: number
+): Promise<boolean> {
   const docId = getFirebaseDocId(email);
   const path = `users/${docId}`;
   
@@ -114,6 +127,10 @@ export async function syncUserProfileToFirebase(email: string, passwordHash: str
     rupiahBalance: profile.rupiahBalance,
     highScore: profile.highScore,
     registeredAt: profile.registeredAt,
+    ...(rigs && { rigsJson: JSON.stringify(rigs) }),
+    ...(achievements && { achievementsJson: JSON.stringify(achievements) }),
+    ...(typeof dynamiteCount === "number" && { dynamiteCount }),
+    ...(typeof magnetCount === "number" && { magnetCount })
   };
 
   try {

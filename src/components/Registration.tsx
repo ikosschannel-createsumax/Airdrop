@@ -116,11 +116,11 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
         minerTag: "baraman#7391",
         avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=BaraMan",
         role: "driller",
-        level: 3,
-        experience: 850,
-        ldrBalance: 75.0,
-        rupiahBalance: 15450,
-        highScore: 1250,
+        level: 1,
+        experience: 0,
+        ldrBalance: 0.0,
+        rupiahBalance: 0,
+        highScore: 0,
         registeredAt: new Date(Date.now() - 36000000).toISOString()
       };
       
@@ -138,14 +138,14 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
     if (!initialList.some(u => u.email.toLowerCase() === "kusumax@ldrcoin.com" || u.profile?.username?.toLowerCase() === "kusumax")) {
       const sampleProfile2: MinerProfile = {
         username: "Kusumax",
-        minerTag: "kusumax#9988",
+        minerTag: "kusumax#8696",
         avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Kusumax",
         role: "broker",
-        level: 8,
-        experience: 24500,
-        ldrBalance: 580.0,
-        rupiahBalance: 245000,
-        highScore: 7850,
+        level: 1,
+        experience: 0,
+        ldrBalance: 0.0,
+        rupiahBalance: 0,
+        highScore: 0,
         registeredAt: new Date(Date.now() - 36000000 * 4).toISOString()
       };
       
@@ -166,11 +166,11 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
         minerTag: "kusuma#8899",
         avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=Kusumaletterformee",
         role: "broker",
-        level: 10,
-        experience: 99999,
-        ldrBalance: 1000.0,
-        rupiahBalance: 500000,
-        highScore: 9999,
+        level: 1,
+        experience: 0,
+        ldrBalance: 0.0,
+        rupiahBalance: 0,
+        highScore: 0,
         registeredAt: new Date().toISOString()
       };
 
@@ -367,7 +367,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
         role: selectedRole,
         level: 1,
         experience: 0,
-        ldrBalance: selectedRole === "driller" ? 25 : selectedRole === "geologist" ? 15 : 20, // starting coins
+        ldrBalance: 0.0, // starting coins are 0
         rupiahBalance: 0,
         highScore: 0,
         registeredAt: new Date().toISOString()

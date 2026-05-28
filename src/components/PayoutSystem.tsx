@@ -69,6 +69,11 @@ export default function PayoutSystem({
   adminBcaNo,
   adminMandiriNo
 }: PayoutSystemProps) {
+  const getUserKey = (baseKey: string) => {
+    const activeEmail = localStorage.getItem("ldr_active_email")?.toLowerCase().trim();
+    return activeEmail ? `${baseKey}_${activeEmail}` : baseKey;
+  };
+
   const [payoutMethod, setPayoutMethod] = useState<'bank' | 'ewallet' | 'crypto'>('ewallet');
   const [selectedProvider, setSelectedProvider] = useState<string>("DANA");
   const [destinationAccount, setDestinationAccount] = useState<string>("");
@@ -134,7 +139,7 @@ export default function PayoutSystem({
     };
     const updatedTx = [newTx, ...transactions];
     setTransactions(updatedTx);
-    localStorage.setItem("ldr_miner_transactions", JSON.stringify(updatedTx));
+    localStorage.setItem(getUserKey("ldr_miner_transactions"), JSON.stringify(updatedTx));
 
     // Create Notification Alert
     const newAlert: AccountAlert = {
@@ -147,7 +152,7 @@ export default function PayoutSystem({
     };
     const updatedAlerts = [newAlert, ...alerts];
     setAlerts(updatedAlerts);
-    localStorage.setItem("ldr_miner_alerts", JSON.stringify(updatedAlerts));
+    localStorage.setItem(getUserKey("ldr_miner_alerts"), JSON.stringify(updatedAlerts));
 
     setActiveDepositAmount(null);
     setDepositAmount("5000");
@@ -186,7 +191,7 @@ export default function PayoutSystem({
       };
       const updatedTx = [newTx, ...transactions];
       setTransactions(updatedTx);
-      localStorage.setItem("ldr_miner_transactions", JSON.stringify(updatedTx));
+      localStorage.setItem(getUserKey("ldr_miner_transactions"), JSON.stringify(updatedTx));
 
       // Create Alert
       const newAlert: AccountAlert = {
@@ -199,7 +204,7 @@ export default function PayoutSystem({
       };
       const updatedAlerts = [newAlert, ...alerts];
       setAlerts(updatedAlerts);
-      localStorage.setItem("ldr_miner_alerts", JSON.stringify(updatedAlerts));
+      localStorage.setItem(getUserKey("ldr_miner_alerts"), JSON.stringify(updatedAlerts));
 
       setSwapAmount("");
       playUpgradeSound();
@@ -228,7 +233,7 @@ export default function PayoutSystem({
       };
       const updatedTx = [newTx, ...transactions];
       setTransactions(updatedTx);
-      localStorage.setItem("ldr_miner_transactions", JSON.stringify(updatedTx));
+      localStorage.setItem(getUserKey("ldr_miner_transactions"), JSON.stringify(updatedTx));
 
       // Create Alert
       const newAlert: AccountAlert = {
@@ -241,7 +246,7 @@ export default function PayoutSystem({
       };
       const updatedAlerts = [newAlert, ...alerts];
       setAlerts(updatedAlerts);
-      localStorage.setItem("ldr_miner_alerts", JSON.stringify(updatedAlerts));
+      localStorage.setItem(getUserKey("ldr_miner_alerts"), JSON.stringify(updatedAlerts));
 
       setSwapAmount("");
       playUpgradeSound();
@@ -252,7 +257,7 @@ export default function PayoutSystem({
   // Initialize pre-seeded lists of transactions & system notifications
   useEffect(() => {
     // Load existing transactions or set default pre-seeded ones
-    const savedTx = localStorage.getItem("ldr_miner_transactions");
+    const savedTx = localStorage.getItem(getUserKey("ldr_miner_transactions"));
     if (savedTx) {
       try {
         setTransactions(JSON.parse(savedTx));
@@ -281,11 +286,11 @@ export default function PayoutSystem({
         }
       ];
       setTransactions(initialTx);
-      localStorage.setItem("ldr_miner_transactions", JSON.stringify(initialTx));
+      localStorage.setItem(getUserKey("ldr_miner_transactions"), JSON.stringify(initialTx));
     }
 
     // Load alerts or set default pre-seeded ones
-    const savedAlerts = localStorage.getItem("ldr_miner_alerts");
+    const savedAlerts = localStorage.getItem(getUserKey("ldr_miner_alerts"));
     if (savedAlerts) {
       try {
         setAlerts(JSON.parse(savedAlerts));
@@ -312,19 +317,19 @@ export default function PayoutSystem({
         }
       ];
       setAlerts(initialAlerts);
-      localStorage.setItem("ldr_miner_alerts", JSON.stringify(initialAlerts));
+      localStorage.setItem(getUserKey("ldr_miner_alerts"), JSON.stringify(initialAlerts));
     }
   }, []);
 
   // Sync states utility
   const saveTransactionsToStorage = (updatedList: TransactionRecord[]) => {
     setTransactions(updatedList);
-    localStorage.setItem("ldr_miner_transactions", JSON.stringify(updatedList));
+    localStorage.setItem(getUserKey("ldr_miner_transactions"), JSON.stringify(updatedList));
   };
 
   const saveAlertsToStorage = (updatedList: AccountAlert[]) => {
     setAlerts(updatedList);
-    localStorage.setItem("ldr_miner_alerts", JSON.stringify(updatedList));
+    localStorage.setItem(getUserKey("ldr_miner_alerts"), JSON.stringify(updatedList));
   };
 
   // Switch payout channels
@@ -447,7 +452,7 @@ export default function PayoutSystem({
           }
           return tx;
         });
-        localStorage.setItem("ldr_miner_transactions", JSON.stringify(updated));
+        localStorage.setItem(getUserKey("ldr_miner_transactions"), JSON.stringify(updated));
         return updated;
       });
 
@@ -463,7 +468,7 @@ export default function PayoutSystem({
 
       setAlerts((prevAlerts) => {
         const updatedAlerts = [newAlert, ...prevAlerts];
-        localStorage.setItem("ldr_miner_alerts", JSON.stringify(updatedAlerts));
+        localStorage.setItem(getUserKey("ldr_miner_alerts"), JSON.stringify(updatedAlerts));
         return updatedAlerts;
       });
 

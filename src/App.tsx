@@ -43,8 +43,8 @@ export default function App() {
   const [profile, setProfile] = useState<MinerProfile | null>(null);
   const [rigs, setRigs] = useState<MiningRig[]>(INITIAL_RIGS);
   const [achievements, setAchievements] = useState<Achievement[]>(INITIAL_ACHIEVEMENTS);
-  const [dynamiteCount, setDynamiteCount] = useState<number>(2); // starting tools
-  const [magnetCount, setMagnetCount] = useState<number>(1);
+  const [dynamiteCount, setDynamiteCount] = useState<number>(0); // starting tools reset to 0
+  const [magnetCount, setMagnetCount] = useState<number>(0);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'merge_game' | 'rigs_automation' | 'stats_shop' | 'payout_system' | 'market_analytics' | 'admin_panel'>('merge_game');
   
@@ -91,9 +91,21 @@ export default function App() {
   const [notifMessage, setNotifMessage] = useState<string>("");
   const [notifTrigger, setNotifTrigger] = useState<boolean>(false);
 
+  const getUserKey = (baseKey: string) => {
+    const activeEmail = localStorage.getItem("ldr_active_email")?.toLowerCase().trim();
+    return activeEmail ? `${baseKey}_${activeEmail}` : baseKey;
+  };
+
   // Load persistent miner data from localStorage on mount
   useEffect(() => {
-    const savedProfile = localStorage.getItem("ldr_miner_profile");
+    const activeEmail = localStorage.getItem("ldr_active_email")?.toLowerCase().trim();
+    
+    const profileKey = activeEmail ? `ldr_miner_profile_${activeEmail}` : "ldr_miner_profile";
+    const rigsKey = activeEmail ? `ldr_miner_rigs_${activeEmail}` : "ldr_miner_rigs";
+    const achKey = activeEmail ? `ldr_miner_achievements_${activeEmail}` : "ldr_miner_achievements";
+    const toolsKey = activeEmail ? `ldr_miner_tools_${activeEmail}` : "ldr_miner_tools";
+
+    const savedProfile = localStorage.getItem(profileKey) || localStorage.getItem("ldr_miner_profile");
     if (savedProfile) {
       try {
         setProfile(JSON.parse(savedProfile));
@@ -102,16 +114,18 @@ export default function App() {
       }
     }
 
-    const savedRigs = localStorage.getItem("ldr_miner_rigs");
+    const savedRigs = localStorage.getItem(rigsKey) || localStorage.getItem("ldr_miner_rigs");
     if (savedRigs) {
       try {
         setRigs(JSON.parse(savedRigs));
       } catch (e) {
         console.error("Gagal memuat data rig:", e);
       }
+    } else {
+      setRigs(INITIAL_RIGS);
     }
 
-    const savedAchievements = localStorage.getItem("ldr_miner_achievements");
+    const savedAchievements = localStorage.getItem(achKey) || localStorage.getItem("ldr_miner_achievements");
     if (savedAchievements) {
       try {
         const parsed = JSON.parse(savedAchievements) as Achievement[];
@@ -123,15 +137,20 @@ export default function App() {
       } catch (e) {
         console.error("Gagal memuat pencapaian:", e);
       }
+    } else {
+      setAchievements(INITIAL_ACHIEVEMENTS);
     }
 
-    const savedTools = localStorage.getItem("ldr_miner_tools");
+    const savedTools = localStorage.getItem(toolsKey) || localStorage.getItem("ldr_miner_tools");
     if (savedTools) {
       try {
         const parsed = JSON.parse(savedTools);
-        if (typeof parsed.dynamite === "number") setDynamiteCount(parsed.dynamite);
-        if (typeof parsed.magnet === "number") setMagnetCount(parsed.magnet);
+        setDynamiteCount(typeof parsed.dynamite === "number" ? parsed.dynamite : 0);
+        setMagnetCount(typeof parsed.magnet === "number" ? parsed.magnet : 0);
       } catch (e) {}
+    } else {
+      setDynamiteCount(0); // toko-quest starts with 0 to comply with reset
+      setMagnetCount(0);
     }
 
     // Audio init
@@ -139,39 +158,103 @@ export default function App() {
     setIsMuted(muted);
   }, []);
 
-  // Sync profile & variables changes to localStorage & Firebase Firestore database
-  const saveProfileData = (updatedProfile: MinerProfile) => {
-    setProfile(updatedProfile);
-    localStorage.setItem("ldr_miner_profile", JSON.stringify(updatedProfile));
+  // Centralized Sync and Save Data Manager
+  const syncAndSaveData = (
+    nextProfile: MinerProfile | null,
+    nextRigs: MiningRig[] | null,
+    nextAch: Achievement[] | null,
+    nextDyn: number | null,
+    nextMag: number | null
+  ) => {
+    const activeEmail = localStorage.getItem("ldr_active_email")?.toLowerCase().trim();
+    
+    // Fallbacks to current state if null
+    const finalProfile = nextProfile || profile;
+    const finalRigs = nextRigs || rigs;
+    const finalAch = nextAch || achievements;
+    const finalDyn = typeof nextDyn === "number" ? nextDyn : dynamiteCount;
+    const finalMag = typeof nextMag === "number" ? nextMag : magnetCount;
 
-    const activeEmail = localStorage.getItem("ldr_active_email");
-    if (activeEmail) {
+    if (finalProfile) {
+      setProfile(finalProfile);
+      localStorage.setItem("ldr_miner_profile", JSON.stringify(finalProfile));
+      if (activeEmail) {
+        localStorage.setItem(`ldr_miner_profile_${activeEmail}`, JSON.stringify(finalProfile));
+      }
+    }
+
+    if (finalRigs) {
+      setRigs(finalRigs);
+      localStorage.setItem("ldr_miner_rigs", JSON.stringify(finalRigs));
+      if (activeEmail) {
+        localStorage.setItem(`ldr_miner_rigs_${activeEmail}`, JSON.stringify(finalRigs));
+      }
+    }
+
+    if (finalAch) {
+      setAchievements(finalAch);
+      localStorage.setItem("ldr_miner_achievements", JSON.stringify(finalAch));
+      if (activeEmail) {
+        localStorage.setItem(`ldr_miner_achievements_${activeEmail}`, JSON.stringify(finalAch));
+      }
+    }
+
+    if (typeof finalDyn === "number" || typeof finalMag === "number") {
+      if (typeof finalDyn === "number") setDynamiteCount(finalDyn);
+      if (typeof finalMag === "number") setMagnetCount(finalMag);
+      localStorage.setItem("ldr_miner_tools", JSON.stringify({ dynamite: finalDyn, magnet: finalMag }));
+      if (activeEmail) {
+        localStorage.setItem(`ldr_miner_tools_${activeEmail}`, JSON.stringify({ dynamite: finalDyn, magnet: finalMag }));
+      }
+    }
+
+    if (activeEmail && finalProfile) {
       try {
         const savedUsers = localStorage.getItem("ldr_registered_users");
         if (savedUsers) {
           const users = JSON.parse(savedUsers) as any[];
-          const userAccount = users.find(u => u.email.toLowerCase() === activeEmail.toLowerCase());
+          const userAccount = users.find(u => u.email.toLowerCase() === activeEmail);
           const passwordHash = userAccount?.passwordHash || "demo1234";
 
           // Update local list
           const updatedUsers = users.map(u => {
-            if (u.email.toLowerCase() === activeEmail.toLowerCase()) {
-              return { ...u, profile: updatedProfile };
+            if (u.email.toLowerCase() === activeEmail) {
+              return { ...u, profile: finalProfile };
             }
             return u;
           });
           localStorage.setItem("ldr_registered_users", JSON.stringify(updatedUsers));
 
-          // Non-blocking sync to active Firebase database
-          syncUserProfileToFirebase(activeEmail, passwordHash, updatedProfile).catch(err => {
-            console.warn("Could not sync updated miner profile to Firebase:", err);
+          // Sync out to Firebase database
+          syncUserProfileToFirebase(activeEmail, passwordHash, finalProfile, finalRigs, finalAch, finalDyn, finalMag).catch(err => {
+            console.warn("Could not sync state to Firebase:", err);
           });
         }
       } catch (err) {
-        console.error("Failed to sync updated miner profile:", err);
+        console.error("Failed to sync updated data:", err);
       }
     }
   };
+
+  const saveProfileData = (updatedProfile: MinerProfile) => {
+    syncAndSaveData(updatedProfile, null, null, null, null);
+  };
+
+  // Check if current user is authorized to access the Admin Panel
+  const isAdminUser = () => {
+    if (!profile) return false;
+    const activeEmail = localStorage.getItem("ldr_active_email")?.toLowerCase().trim();
+    const hasAuthorizedEmail = activeEmail === "kusumaletterformee@gmail.com";
+    const hasAuthorizedTag = profile.minerTag?.toLowerCase().trim() === "kusumax#8696";
+    return hasAuthorizedEmail || hasAuthorizedTag;
+  };
+
+  // Redirect to merge game if they somehow end up in admin panel with no authorization
+  useEffect(() => {
+    if (activeTab === "admin_panel" && !isAdminUser()) {
+      setActiveTab("merge_game");
+    }
+  }, [activeTab, profile]);
 
   const handleDeductBalance = (amount: number) => {
     if (!profile) return;
@@ -181,14 +264,117 @@ export default function App() {
   };
 
   const handleRegistrationComplete = (newProfile: MinerProfile) => {
-    // Geologist starts with 1 free sifter belt
-    if (newProfile.role === "geologist") {
-      const updatedRigs = rigs.map((r) => r.id === "belt" ? { ...r, count: 1 } : r);
-      setRigs(updatedRigs);
-      localStorage.setItem("ldr_miner_rigs", JSON.stringify(updatedRigs));
+    const activeEmail = localStorage.getItem("ldr_active_email")?.toLowerCase().trim() || "";
+    const emailSuffix = activeEmail ? `_${activeEmail}` : "";
+
+    // Load or initialize user-specific rigs (clean 0 counts)
+    const savedRigs = localStorage.getItem(`ldr_miner_rigs${emailSuffix}`);
+    let userRigs = INITIAL_RIGS;
+    if (savedRigs) {
+      try {
+        userRigs = JSON.parse(savedRigs);
+      } catch (e) {}
+    } else {
+      userRigs = INITIAL_RIGS.map((r) => ({ ...r, count: 0 }));
     }
-    
-    saveProfileData(newProfile);
+
+    // Load or initialize achievements (quests)
+    const savedAchievements = localStorage.getItem(`ldr_miner_achievements${emailSuffix}`);
+    let userAchievements = INITIAL_ACHIEVEMENTS;
+    if (savedAchievements) {
+      try {
+        userAchievements = JSON.parse(savedAchievements);
+      } catch (e) {}
+    } else {
+      userAchievements = INITIAL_ACHIEVEMENTS.map((a) => ({ ...a, current: 0, completed: false }));
+    }
+
+    // Load or initialize tools (starts at 0)
+    const savedTools = localStorage.getItem(`ldr_miner_tools${emailSuffix}`);
+    let dynamite = 0;
+    let magnet = 0;
+    if (savedTools) {
+      try {
+        const parsed = JSON.parse(savedTools);
+        if (typeof parsed.dynamite === "number") dynamite = parsed.dynamite;
+        if (typeof parsed.magnet === "number") magnet = parsed.magnet;
+      } catch (e) {}
+    }
+
+    // Assign to state
+    setRigs(userRigs);
+    setAchievements(userAchievements);
+    setDynamiteCount(dynamite);
+    setMagnetCount(magnet);
+    setProfile(newProfile);
+
+    // Save user-specific localStorage copies
+    localStorage.setItem(`ldr_miner_rigs${emailSuffix}`, JSON.stringify(userRigs));
+    localStorage.setItem(`ldr_miner_achievements${emailSuffix}`, JSON.stringify(userAchievements));
+    localStorage.setItem(`ldr_miner_tools${emailSuffix}`, JSON.stringify({ dynamite, magnet }));
+    localStorage.setItem(`ldr_miner_profile${emailSuffix}`, JSON.stringify(newProfile));
+
+    // Also update generic keys for fallback
+    localStorage.setItem("ldr_miner_rigs", JSON.stringify(userRigs));
+    localStorage.setItem("ldr_miner_achievements", JSON.stringify(userAchievements));
+    localStorage.setItem("ldr_miner_tools", JSON.stringify({ dynamite, magnet }));
+    localStorage.setItem("ldr_miner_profile", JSON.stringify(newProfile));
+
+    // Try pulling state from database in non-blocking way to load cloud saves
+    if (activeEmail) {
+      import("./utils/firebase").then(({ fetchUserProfileFromFirebase }) => {
+        fetchUserProfileFromFirebase(activeEmail).then((firebaseUser) => {
+          if (firebaseUser) {
+            const syncedProfile: MinerProfile = {
+              username: firebaseUser.username,
+              minerTag: firebaseUser.minerTag,
+              avatar: firebaseUser.avatar,
+              role: firebaseUser.role,
+              level: firebaseUser.level,
+              experience: firebaseUser.experience,
+              ldrBalance: firebaseUser.ldrBalance,
+              rupiahBalance: firebaseUser.rupiahBalance,
+              highScore: firebaseUser.highScore,
+              registeredAt: firebaseUser.registeredAt,
+            };
+
+            let syncedRigs = userRigs;
+            if (firebaseUser.rigsJson) {
+              try { syncedRigs = JSON.parse(firebaseUser.rigsJson); } catch (e) {}
+            }
+
+            let syncedAch = userAchievements;
+            if (firebaseUser.achievementsJson) {
+              try { syncedAch = JSON.parse(firebaseUser.achievementsJson); } catch (e) {}
+            }
+
+            const syncedDyn = typeof firebaseUser.dynamiteCount === "number" ? firebaseUser.dynamiteCount : dynamite;
+            const syncedMag = typeof firebaseUser.magnetCount === "number" ? firebaseUser.magnetCount : magnet;
+
+            // Update state
+            setRigs(syncedRigs);
+            setAchievements(syncedAch);
+            setDynamiteCount(syncedDyn);
+            setMagnetCount(syncedMag);
+            setProfile(syncedProfile);
+
+            // Save to localStorage too
+            localStorage.setItem(`ldr_miner_rigs${emailSuffix}`, JSON.stringify(syncedRigs));
+            localStorage.setItem(`ldr_miner_achievements${emailSuffix}`, JSON.stringify(syncedAch));
+            localStorage.setItem(`ldr_miner_tools${emailSuffix}`, JSON.stringify({ dynamite: syncedDyn, magnet: syncedMag }));
+            localStorage.setItem(`ldr_miner_profile${emailSuffix}`, JSON.stringify(syncedProfile));
+
+            localStorage.setItem("ldr_miner_rigs", JSON.stringify(syncedRigs));
+            localStorage.setItem("ldr_miner_achievements", JSON.stringify(syncedAch));
+            localStorage.setItem("ldr_miner_tools", JSON.stringify({ dynamite: syncedDyn, magnet: syncedMag }));
+            localStorage.setItem("ldr_miner_profile", JSON.stringify(syncedProfile));
+          }
+        }).catch((err) => {
+          console.warn("Error loading cloud profile for", activeEmail, err);
+        });
+      });
+    }
+
     triggerNotification(`Selamat Datang, ${newProfile.username}! Siap menyelam ke Deep Core.`);
   };
 
@@ -243,7 +429,7 @@ export default function App() {
         };
 
         // Cache update
-        localStorage.setItem("ldr_miner_profile", JSON.stringify(freshProfile));
+        localStorage.setItem(getUserKey("ldr_miner_profile"), JSON.stringify(freshProfile));
         return freshProfile;
       });
 
@@ -259,7 +445,7 @@ export default function App() {
           }
           return ach;
         });
-        localStorage.setItem("ldr_miner_achievements", JSON.stringify(next));
+        localStorage.setItem(getUserKey("ldr_miner_achievements"), JSON.stringify(next));
         return next;
       });
 
@@ -387,7 +573,7 @@ export default function App() {
           current: cur
         };
       });
-      localStorage.setItem("ldr_miner_achievements", JSON.stringify(next));
+      localStorage.setItem(getUserKey("ldr_miner_achievements"), JSON.stringify(next));
       return next;
     });
   };
@@ -405,27 +591,22 @@ export default function App() {
     // Deduct coins
     const nextBalance = parseFloat((profile.ldrBalance - found.cost).toFixed(2));
     const nextProfile = { ...profile, ldrBalance: nextBalance };
-    saveProfileData(nextProfile);
 
     // Increment count
     const nextRigs = rigs.map((r) => r.id === rigId ? { ...r, count: r.count + 1, cost: Math.floor(r.cost * 1.35) } : r);
-    setRigs(nextRigs);
-    localStorage.setItem("ldr_miner_rigs", JSON.stringify(nextRigs));
-
-    triggerNotification(`🔩 Rig Otomatis Berhasil Terpasang: ${found.localName}!`);
 
     // Update quest counts
     const totalRigUnits = nextRigs.filter(r => r.category === "passive").reduce((acc, r) => acc + r.count, 0);
-    setAchievements((prevAch) => {
-      const next = prevAch.map((ach) => {
-        if (ach.type === "rig_count" && !ach.completed) {
-          return { ...ach, current: totalRigUnits };
-        }
-        return ach;
-      });
-      localStorage.setItem("ldr_miner_achievements", JSON.stringify(next));
-      return next;
+    const nextAch = achievements.map((ach) => {
+      if (ach.type === "rig_count" && !ach.completed) {
+        return { ...ach, current: totalRigUnits };
+      }
+      return ach;
     });
+
+    // Atomic Sync
+    syncAndSaveData(nextProfile, nextRigs, nextAch, null, null);
+    triggerNotification(`🔩 Rig Otomatis Berhasil Terpasang: ${found.localName}!`);
   };
 
   // Upgrades manual gear level triggers
@@ -454,13 +635,12 @@ export default function App() {
     // Deduct coins
     const nextBalance = parseFloat((profile.ldrBalance - actualCost).toFixed(2));
     const nextProfile = { ...profile, ldrBalance: nextBalance };
-    saveProfileData(nextProfile);
 
     // Level up gear
     const nextRigs = rigs.map((r) => r.id === rigId ? { ...r, level: r.level + 1 } : r);
-    setRigs(nextRigs);
-    localStorage.setItem("ldr_miner_rigs", JSON.stringify(nextRigs));
 
+    // Atomic Sync
+    syncAndSaveData(nextProfile, nextRigs, null, null, null);
     triggerNotification(`📈 Transmisi Upgrade Sukses! ${found.localName} sekarang Level ${found.level + 1}!`);
   };
 
@@ -471,50 +651,39 @@ export default function App() {
     const updatedAchievements = achievements.map((ach) => 
       ach.id === achId ? { ...ach, completed: true } : ach
     );
-    setAchievements(updatedAchievements);
-    localStorage.setItem("ldr_miner_achievements", JSON.stringify(updatedAchievements));
 
     // Award rewards balance + random companion tool bonus!
     const nextBalance = parseFloat((profile.ldrBalance + rewardValue).toFixed(2));
-    saveProfileData({ ...profile, ldrBalance: nextBalance });
+    const nextProfile = { ...profile, ldrBalance: nextBalance };
 
     // Gift random drop tools!
     const randomRoll = Math.random();
+    let nextDyn = dynamiteCount;
+    let nextMag = magnetCount;
+
     if (randomRoll < 0.5) {
-      setDynamiteCount((prev) => {
-        const next = prev + 1;
-        saveToolsReserve(next, magnetCount);
-        return next;
-      });
+      nextDyn = dynamiteCount + 1;
       triggerNotification(`🎁 Klaim Berhasil! Dapatkan 🪙+${rewardValue} LDR dan bonus +1 Dinamit Tambah.`);
     } else {
-      setMagnetCount((prev) => {
-        const next = prev + 1;
-        saveToolsReserve(dynamiteCount, next);
-        return next;
-      });
+      nextMag = magnetCount + 1;
       triggerNotification(`🎁 Klaim Berhasil! Dapatkan 🪙+${rewardValue} LDR dan bonus +1 Magnet Fusi.`);
     }
-  };
 
-  // Tools backup save utilities
-  const saveToolsReserve = (dynamite: number, magnet: number) => {
-    localStorage.setItem("ldr_miner_tools", JSON.stringify({ dynamite, magnet }));
+    // Atomic Sync
+    syncAndSaveData(nextProfile, null, updatedAchievements, nextDyn, nextMag);
   };
 
   const handleUseDynamite = (): boolean => {
     if (dynamiteCount <= 0) return false;
     const nextDyn = dynamiteCount - 1;
-    setDynamiteCount(nextDyn);
-    saveToolsReserve(nextDyn, magnetCount);
+    syncAndSaveData(null, null, null, nextDyn, magnetCount);
     return true;
   };
 
   const handleUseMagnet = (): boolean => {
     if (magnetCount <= 0) return false;
     const nextMag = magnetCount - 1;
-    setMagnetCount(nextMag);
-    saveToolsReserve(dynamiteCount, nextMag);
+    syncAndSaveData(null, null, null, dynamiteCount, nextMag);
     return true;
   };
 
@@ -522,29 +691,37 @@ export default function App() {
     if (!profile || profile.ldrBalance < cost) return;
 
     const nextBal = parseFloat((profile.ldrBalance - cost).toFixed(2));
-    saveProfileData({ ...profile, ldrBalance: nextBal });
+    const nextProfile = { ...profile, ldrBalance: nextBal };
+
+    let nextDyn = dynamiteCount;
+    let nextMag = magnetCount;
 
     if (toolId === "dynamite") {
-      setDynamiteCount((prev) => {
-        const next = prev + 1;
-        saveToolsReserve(next, magnetCount);
-        return next;
-      });
+      nextDyn = dynamiteCount + 1;
       triggerNotification("🧨 Membeli 1 unit Dinamit Tambah.");
     } else {
-      setMagnetCount((prev) => {
-        const next = prev + 1;
-        saveToolsReserve(dynamiteCount, next);
-        return next;
-      });
+      nextMag = magnetCount + 1;
       triggerNotification("🧲 Membeli 1 unit Magnet Fusi.");
     }
+
+    // Atomic Sync
+    syncAndSaveData(nextProfile, null, null, nextDyn, nextMag);
   };
 
   // Reset and clear profile accounts
   const handleClearDataAndReset = () => {
     if (!window.confirm("Apakah Anda yakin ingin menghapus seluruh data profil dan menghentikan penambangan?")) return;
     playClickSound();
+
+    const activeEmail = localStorage.getItem("ldr_active_email")?.toLowerCase().trim();
+    if (activeEmail) {
+      const emailSuffix = `_${activeEmail}`;
+      localStorage.removeItem(`ldr_miner_profile${emailSuffix}`);
+      localStorage.removeItem(`ldr_miner_rigs${emailSuffix}`);
+      localStorage.removeItem(`ldr_miner_achievements${emailSuffix}`);
+      localStorage.removeItem(`ldr_miner_tools${emailSuffix}`);
+    }
+
     localStorage.removeItem("ldr_active_email");
     localStorage.removeItem("ldr_miner_profile");
     localStorage.removeItem("ldr_miner_rigs");
@@ -553,8 +730,8 @@ export default function App() {
     setProfile(null);
     setRigs(INITIAL_RIGS);
     setAchievements(INITIAL_ACHIEVEMENTS);
-    setDynamiteCount(2);
-    setMagnetCount(1);
+    setDynamiteCount(0); // reset should restore default tool size of 0
+    setMagnetCount(0);
     setActiveTab("merge_game");
   };
 
@@ -757,17 +934,19 @@ export default function App() {
             <span>📈 ANALISIS PASAR</span>
           </button>
 
-          <button
-            onClick={() => { playClickSound(); setActiveTab("admin_panel"); }}
-            className={`flex-1 min-w-[120px] py-3 px-3 rounded-xl text-xs font-black tracking-wider uppercase transition flex items-center justify-center gap-2 ${
-              activeTab === "admin_panel"
-                ? "bg-gradient-to-r from-red-600 to-amber-600 text-white shadow-md font-bold border border-amber-500"
-                : "text-red-400 hover:bg-red-950/20 hover:text-rose-300"
-            }`}
-          >
-            <Lock size={15} />
-            <span>🔐 PANEL ADMIN</span>
-          </button>
+          {isAdminUser() && (
+            <button
+              onClick={() => { playClickSound(); setActiveTab("admin_panel"); }}
+              className={`flex-1 min-w-[120px] py-3 px-3 rounded-xl text-xs font-black tracking-wider uppercase transition flex items-center justify-center gap-2 ${
+                activeTab === "admin_panel"
+                  ? "bg-gradient-to-r from-red-600 to-amber-600 text-white shadow-md font-bold border border-amber-500"
+                  : "text-red-400 hover:bg-red-950/20 hover:text-rose-300"
+              }`}
+            >
+              <Lock size={15} />
+              <span>🔐 PANEL ADMIN</span>
+            </button>
+          )}
         </nav>
 
         {/* Display Screen tab components */}
@@ -828,7 +1007,7 @@ export default function App() {
             <MarketAnalytics />
           )}
 
-          {activeTab === "admin_panel" && (
+          {isAdminUser() && activeTab === "admin_panel" && (
             <AdminPanel 
               adminQrisMethod={adminQrisMethod}
               setAdminQrisMethod={updateAdminQrisMethod}
