@@ -81,7 +81,7 @@ export default function PayoutSystem({
   const [withdrawSource] = useState<'ldr' | 'rupiah'>('ldr');
 
   // Deposit & Swap states
-  const [depositAmount, setDepositAmount] = useState<string>("5000");
+  const [depositAmount, setDepositAmount] = useState<string>("25000");
   const [depositMethod, setDepositMethod] = useState<string>("QRIS");
   const [swapDirection, setSwapDirection] = useState<'ldrToRp' | 'rpToLdr'>('ldrToRp');
   const [swapAmount, setSwapAmount] = useState<string>("");
@@ -89,6 +89,7 @@ export default function PayoutSystem({
   // State to handle deposit invoice overlay
   const [activeDepositAmount, setActiveDepositAmount] = useState<number | null>(null);
   const [activeDepositMethod, setActiveDepositMethod] = useState<string>("");
+  const [showNoDepositModal, setShowNoDepositModal] = useState<boolean>(false);
   
   // Local transaction and notification states
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
@@ -155,7 +156,7 @@ export default function PayoutSystem({
     localStorage.setItem(getUserKey("ldr_miner_alerts"), JSON.stringify(updatedAlerts));
 
     setActiveDepositAmount(null);
-    setDepositAmount("5000");
+    setDepositAmount("25000");
     playUpgradeSound();
     triggerNotification(`✅ Sukses mengisi saldo Rp ${amt.toLocaleString("id-ID")} via ${method}!`);
   };
@@ -351,6 +352,18 @@ export default function PayoutSystem({
     e.preventDefault();
     playClickSound();
 
+    // Check if user has total completed deposit of at least Rp 50.000
+    const totalDeposit = transactions
+      .filter((tx) => tx.method.toUpperCase().includes("DEPOSIT") && tx.status === "completed")
+      .reduce((sum, tx) => sum + (tx.amountRupiah || 0), 0);
+
+    if (totalDeposit < 50000) {
+      window.alert("pertambangan akun harus memiliki jumlah deposit untuk melakukan penarikan");
+      triggerNotification("⚠️ pertambangan akun harus memiliki jumlah deposit untuk melakukan penarikan");
+      setShowNoDepositModal(true);
+      return;
+    }
+
     const amt = parseFloat(withdrawAmount);
     if (!withdrawAmount || isNaN(amt) || amt <= 0) {
       triggerNotification("⚠️ Harap masukkan jumlah penarikan yang valid!");
@@ -512,7 +525,7 @@ export default function PayoutSystem({
       <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6">
         
         {/* Fill Balance / Simulated Deposit Wallet */}
-        <div className="bg-[#111625] border border-emerald-500/30 rounded-2xl p-5 md:p-6 shadow-xl relative overflow-hidden text-left">
+        <div id="deposit-section" className="bg-[#111625] border border-emerald-500/30 rounded-2xl p-5 md:p-6 shadow-xl relative overflow-hidden text-left">
           <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
           <div className="flex items-center gap-2 mb-4">
             <Landmark className="text-emerald-400 shrink-0" size={20} />
@@ -674,6 +687,25 @@ export default function PayoutSystem({
                 <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1.5 font-medium">
                   JUMLAH DEPOSIT (NOMINAL RP):
                 </label>
+                
+                {/* Preset Deposit Nominal Buttons */}
+                <div className="grid grid-cols-4 gap-2 mb-3">
+                  {["10000", "25000", "50000", "100000"].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => { playClickSound(); setDepositAmount(preset); }}
+                      className={`py-1.5 px-1 rounded-lg text-[10px] font-bold font-mono transition text-center border ${
+                        depositAmount === preset
+                          ? "bg-emerald-500 text-black shadow-md border-emerald-400 font-extrabold"
+                          : "bg-gray-950 text-gray-400 hover:text-white hover:bg-gray-900 border-gray-800"
+                      }`}
+                    >
+                      Rp {parseInt(preset).toLocaleString("id-ID")}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="relative rounded-lg shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-emerald-500 font-mono text-xs">
                     Rp
@@ -685,7 +717,7 @@ export default function PayoutSystem({
                     placeholder="Min. Rp 5.000"
                     min="5000"
                     step="1000"
-                    className="w-full bg-gray-950 border border-gray-800 rounded-lg pl-9 pr-24 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 font-mono text-xs font-semibold"
+                    className="w-full bg-gray-950 border border-gray-805 rounded-lg pl-9 pr-24 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 font-mono text-xs font-semibold"
                   />
                   <button
                     type="submit"
@@ -1198,6 +1230,54 @@ export default function PayoutSystem({
         </div>
 
       </div>
+
+      {showNoDepositModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fade-in">
+          <div className="bg-[#111625] border border-red-500/40 rounded-2xl max-w-sm w-full p-6 text-center shadow-2xl relative overflow-hidden animate-scale-up">
+            <div className="absolute -top-16 inset-x-0 h-32 bg-red-500/5 rounded-full blur-xl pointer-events-none" />
+            
+            <div className="w-14 h-14 bg-red-500/10 text-red-500 border border-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <ShieldAlert size={28} />
+            </div>
+
+            <h3 className="text-md font-bold text-white uppercase tracking-wider font-mono mb-2">
+              🚨 AKSES DEPOSIT TERBATAS
+            </h3>
+
+            <p className="text-xs text-gray-300 font-mono leading-relaxed mb-6">
+              pertambangan akun harus memiliki jumlah deposit untuk melakukan penarikan
+            </p>
+
+            <div className="space-y-2">
+              <button
+                type="button"
+                onClick={() => {
+                  playClickSound();
+                  setShowNoDepositModal(false);
+                  const depEl = document.getElementById("deposit-section");
+                  if (depEl) {
+                    depEl.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
+                className="w-full py-2.5 bg-gradient-to-r from-red-500 to-amber-600 hover:from-red-650 hover:to-amber-650 text-white font-extrabold rounded-xl text-[10px] font-mono uppercase tracking-wider transition"
+              >
+                Isi Saldo Rupiah Sekarang
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  playClickSound();
+                  setShowNoDepositModal(false);
+                }}
+                className="w-full py-2 bg-gray-900 hover:bg-gray-850 text-gray-400 font-bold rounded-xl text-[10px] font-mono uppercase tracking-wider transition"
+              >
+                Tutup Peringatan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -19,6 +19,7 @@ import LeaderboardAndQuests from "./components/LeaderboardAndQuests";
 import PayoutSystem from "./components/PayoutSystem";
 import MarketAnalytics from "./components/MarketAnalytics";
 import AdminPanel from "./components/AdminPanel";
+import ReferralSystem from "./components/ReferralSystem";
 import { setMuteState, getMuteState, playClickSound, playUpgradeSound } from "./utils/audio";
 import { syncUserProfileToFirebase } from "./utils/firebase";
 import { 
@@ -46,7 +47,7 @@ export default function App() {
   const [dynamiteCount, setDynamiteCount] = useState<number>(0); // starting tools reset to 0
   const [magnetCount, setMagnetCount] = useState<number>(0);
   const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'merge_game' | 'rigs_automation' | 'stats_shop' | 'payout_system' | 'market_analytics' | 'admin_panel'>('merge_game');
+  const [activeTab, setActiveTab] = useState<'merge_game' | 'rigs_automation' | 'stats_shop' | 'payout_system' | 'market_analytics' | 'admin_panel' | 'referral'>('merge_game');
   
   // Admin Panel states
   const [adminQrisMethod, setAdminQrisMethod] = useState<'dynamic' | 'static'>(() => {
@@ -616,8 +617,8 @@ export default function App() {
     // Handle manual clicker multi-tap payout hook
     if (rigId === "manual_tap_payout") {
       const pickaxeLevel = rigs.find(r => r.id === "pickaxe")?.level || 1;
-      const payoutVal = Number((0.5 * pickaxeLevel).toFixed(2));
-      const nextBal = parseFloat((profile.ldrBalance + payoutVal).toFixed(2));
+      const payoutVal = Number((0.001 * pickaxeLevel).toFixed(4));
+      const nextBal = parseFloat((profile.ldrBalance + payoutVal).toFixed(4));
       const expBoost = parseFloat((profile.experience + 1).toFixed(2));
       saveProfileData({ ...profile, ldrBalance: nextBal, experience: expBoost });
       return;
@@ -934,6 +935,18 @@ export default function App() {
             <span>📈 ANALISIS PASAR</span>
           </button>
 
+          <button
+            onClick={() => { playClickSound(); setActiveTab("referral"); }}
+            className={`flex-1 min-w-[120px] py-3 px-3 rounded-xl text-xs font-black tracking-wider uppercase transition flex items-center justify-center gap-2 ${
+              activeTab === "referral"
+                ? "bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-md font-bold"
+                : "text-gray-400 hover:bg-[#1a202c] hover:text-gray-200"
+            }`}
+          >
+            <Sparkles size={16} className="text-amber-400" />
+            <span>🔗 REFERRAL</span>
+          </button>
+
           {isAdminUser() && (
             <button
               onClick={() => { playClickSound(); setActiveTab("admin_panel"); }}
@@ -1005,6 +1018,14 @@ export default function App() {
 
           {activeTab === "market_analytics" && (
             <MarketAnalytics />
+          )}
+
+          {profile && activeTab === "referral" && (
+            <ReferralSystem 
+              profile={profile}
+              onAddBalances={handleAddBalances}
+              triggerNotification={triggerNotification}
+            />
           )}
 
           {isAdminUser() && activeTab === "admin_panel" && (

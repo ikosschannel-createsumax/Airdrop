@@ -55,7 +55,7 @@ export default function InteractiveRig({
     setClickCount(newClickCount);
 
     const pickaxeLevel = rigs.find(r => r.id === "pickaxe")?.level || 1;
-    const clickPayoutVal = 0.5 * pickaxeLevel;
+    const clickPayoutVal = 0.001 * pickaxeLevel;
 
     // Track when coins are successfully mined (every 5 clicks)
     if (newClickCount > 0 && newClickCount % 5 === 0) {
@@ -66,7 +66,7 @@ export default function InteractiveRig({
         id: Date.now() + Math.random(),
         x: Math.random() * 80 - 40, // random offset
         y: Math.random() * 40 - 80,
-        text: `🪙 +${clickPayoutVal.toFixed(1)} LDR`
+        text: `🪙 +${clickPayoutVal.toFixed(3)} LDR`
       };
       setFloatingTexts((prev) => [...prev, newFloat]);
       
@@ -268,7 +268,7 @@ export default function InteractiveRig({
                       {rig.localName} <span className="text-xs font-mono text-amber-400 font-bold ml-1">Lv {rig.level}</span>
                     </h4>
                     <p className="text-[11px] text-gray-400 mt-1 leading-snug">
-                       Efek: Bonus koin fusi aktif +{rig.level * 15}%. Clicker {0.5 * rig.level} LDR/5 klik.
+                       Efek: Bonus koin fusi aktif +{rig.level * 15}%. Clicker {(0.001 * rig.level).toFixed(3)} LDR/5 klik.
                     </p>
                   </div>
                   <button
