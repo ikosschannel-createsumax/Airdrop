@@ -116,10 +116,10 @@ export default function ReferralSystem({
     playUpgradeSound();
     const claimAmt = claimableCommission;
     
-    // Deposit directly to Rupiah wallet balance (or fusion balance)
-    onAddBalances(0, claimAmt);
+    // FITUR SIMULASI DEPOSIT TEMAN HANYA SEBAGAI UJI COBA - DANA KLAIM TIDAK MASUK KE SALDO ASET RUPIAH
+    // onAddBalances(0, claimAmt); // Disabled as requested so simulated trial funds aren't added to real assets
     
-    // Move stats
+    // Move statistics
     const nextClaimed = claimedTotal + claimAmt;
     setClaimedTotal(nextClaimed);
     setClaimableCommission(0);
@@ -133,7 +133,7 @@ export default function ReferralSystem({
     setReferrals(updatedRefs);
     localStorage.setItem(getUserKey("ldr_referrals_list"), JSON.stringify(updatedRefs));
 
-    triggerNotification(`🎉 Sukses mengklaim Komisi Referral Rp ${claimAmt.toLocaleString("id-ID")} langsung ke saldo Rupiah Anda!`);
+    triggerNotification(`💸 [UJI COBA & SIMULASI] Komisi virtual sebesar Rp ${claimAmt.toLocaleString("id-ID")} berhasil terproses! (Sesuai mode uji coba, dana ini tidak masuk ke saldo Rupiah riil akun Anda).`);
   };
 
   // Allow generating a mock new referral registration randomly for test and interaction!
@@ -269,13 +269,13 @@ export default function ReferralSystem({
       <div className="bg-[#111624] border border-emerald-500/30 rounded-2xl p-5 md:p-6 shadow-xl flex flex-col md:flex-row items-center gap-6 justify-between text-left">
         <div className="space-y-1">
           <span className="text-[10px] font-mono font-bold tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded inline-block">
-            SALDO KOMISI AFFILIATE SAAT INI (Klaim Instan)
+            SALDO KOMISI AFFILIATE SAAT INI (Uji Coba Visual)
           </span>
           <h3 className="text-2xl font-black font-mono text-white pt-2.5">
             Rp {claimableCommission.toLocaleString("id-ID")}
           </h3>
           <p className="text-[11px] text-gray-450 leading-relaxed font-normal">
-            Klaim komisi didapatkan otomatis setelah teman Anda sukses memverifikasi transfer isi saldo deposit! Komisi dicairkan langsung ke wallet Saldo Rupiah Anda.
+            Klaim komisi didapatkan otomatis setelah teman Anda sukses memverifikasi transfer isi saldo deposit! <strong className="text-amber-400 font-semibold">*Catatan: Karena simulasi pendaftaran & deposit teman ini hanya sebagai bantuan uji coba (trial), dana klaim simulasi ini tidak dimasukkan ke saldo aset Rupiah riil akun Anda.</strong>
           </p>
         </div>
 
