@@ -32,8 +32,7 @@ service cloud.firestore {
     }
 
     match /deposit_requests/{requestId} {
-      allow read, create, update: if isSignedIn();
-      allow delete: if true;
+      allow read, write: if true;
     }
   }
 }
