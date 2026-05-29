@@ -765,14 +765,14 @@ export default function App() {
       
       {/* Dynamic top bar notifier */}
       {notifTrigger && (
-        <div className="fixed top-4 inset-x-0 mx-auto max-w-sm bg-gradient-to-r from-amber-500 to-orange-500 text-[#07090d] font-bold text-xs px-4 py-2.5 rounded-full shadow-2xl z-50 text-center animate-bounce flex items-center justify-center gap-1.5 border border-amber-400 font-mono">
+        <div className="fixed top-24 inset-x-0 mx-auto max-w-sm bg-gradient-to-r from-amber-500 to-orange-500 text-[#07090d] font-bold text-xs px-4 py-2.5 rounded-full shadow-2xl z-50 text-center animate-bounce flex items-center justify-center gap-1.5 border border-amber-400 font-mono">
           <Sparkles size={14} className="animate-spin" />
           <span>{notifMessage}</span>
         </div>
       )}
-
+ 
       {/* Main Container */}
-      <div className="max-w-6xl mx-auto px-4 py-3 md:py-6 space-y-4">
+      <div className="max-w-6xl mx-auto px-4 pt-14 pb-4 md:pt-6 md:pb-6 space-y-4">
         
         {/* Upper Dashboard Terminal Header (Cyberpunk-styled) */}
         <header className="bg-[#141822] border border-gray-800 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 shadow-xl relative overflow-hidden">
