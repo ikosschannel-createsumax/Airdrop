@@ -22,13 +22,20 @@ import {
   Eye,
   EyeOff,
   KeyRound,
-  Trash2
+  Trash2,
+  Check,
+  X,
+  Clock,
+  RefreshCw
 } from "lucide-react";
 import { playClickSound, playUpgradeSound } from "../utils/audio";
 import { 
   updateUserPasswordInFirebase, 
   deleteUserFromFirebase,
-  fetchAllUsersFromFirebase
+  fetchAllUsersFromFirebase,
+  fetchAllDepositRequestsFromFirebase,
+  processDepositRequestInFirebase,
+  FirebaseDepositRequest
 } from "../utils/firebase";
 
 interface AdminPanelProps {
@@ -72,6 +79,70 @@ export default function AdminPanel({
   const [newPasswords, setNewPasswords] = useState<Record<string, string>>({});
   const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
 
+  const [depositRequests, setDepositRequests] = useState<FirebaseDepositRequest[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState<boolean>(false);
+
+  // Helper to load deposit requests
+  const loadDepositRequests = () => {
+    setLoadingRequests(true);
+    fetchAllDepositRequestsFromFirebase()
+      .then((reqs) => {
+        setDepositRequests(reqs);
+      })
+      .catch((err) => {
+        console.warn("Could not load deposit requests:", err);
+      })
+      .finally(() => {
+        setLoadingRequests(false);
+      });
+  };
+
+  // Process a member's pending deposit request
+  const handleProcessDeposit = async (requestId: string, userEmail: string, status: 'completed' | 'failed') => {
+    try {
+      const resp = await processDepositRequestInFirebase(requestId, userEmail, status);
+      if (resp) {
+        playUpgradeSound();
+        triggerNotification(
+          status === 'completed'
+            ? `✅ Deposit ${requestId} berhasil disetujui! Saldo ditambahkan.`
+            : `❌ Deposit ${requestId} berhasil ditolak.`
+        );
+        // Reload requests
+        loadDepositRequests();
+        // Reload registered users
+        fetchAllUsersFromFirebase()
+          .then((firebaseUsers) => {
+            if (firebaseUsers && firebaseUsers.length > 0) {
+              const mapped = firebaseUsers.map(u => ({
+                email: u.email,
+                passwordHash: u.passwordHash,
+                profile: {
+                  username: u.username,
+                  minerTag: u.minerTag,
+                  avatar: u.avatar,
+                  role: u.role,
+                  level: u.level,
+                  experience: u.experience,
+                  ldrBalance: u.ldrBalance,
+                  rupiahBalance: u.rupiahBalance,
+                  highScore: u.highScore,
+                  registeredAt: u.registeredAt
+                }
+              }));
+              setRegisteredUsers(mapped);
+              localStorage.setItem("ldr_registered_users", JSON.stringify(mapped));
+            }
+          });
+      } else {
+        triggerNotification("⚠️ Gagal memproses permintaan: mungkin sudah disetujui/ditolak.");
+      }
+    } catch (err) {
+      console.error(err);
+      triggerNotification("❌ Terjadi kesalahan saat memproses permintaan deposit.");
+    }
+  };
+
   // Sync with Firestore dynamically on mount
   useEffect(() => {
     fetchAllUsersFromFirebase()
@@ -100,6 +171,9 @@ export default function AdminPanel({
       .catch((err) => {
         console.warn("Could not sync users from Firestore on admin load:", err);
       });
+
+    // Also load pending deposits
+    loadDepositRequests();
   }, []);
 
   const handleUpdatePassword = (email: string, newPass: string) => {
@@ -414,6 +488,107 @@ export default function AdminPanel({
             </div>
           </div>
 
+        </div>
+
+        {/* PERMINTAAN DEPOSIT MEMBER (MENUNGGU PERSETUJUAN) */}
+        <div className="md:col-span-12 bg-[#111420] border border-gray-850 rounded-2xl p-5 md:p-6 shadow-xl space-y-5" id="deposit_requests_panel">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-850 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="relative">
+                <Clock size={20} className="text-amber-500 animate-pulse" />
+                {depositRequests.filter(r => r.status === 'pending').length > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                )}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-sm font-black font-mono text-white tracking-widest uppercase">
+                    PERMINTAAN DEPOSIT MEMBER
+                  </h2>
+                  <span className="text-[10px] font-mono font-black bg-red-500/15 text-red-500 border border-red-500/25 px-1.5 py-0.5 rounded uppercase">
+                    {depositRequests.filter(r => r.status === 'pending').length} MENUNGGU
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-0.5 font-mono">
+                  Daftar deposit manual yang diproses (Sistem/CS) menunggu persetujuan admin.
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                playClickSound();
+                loadDepositRequests();
+              }}
+              disabled={loadingRequests}
+              className="flex items-center gap-1.5 py-1.5 px-3 bg-[#090b11] border border-gray-800 hover:border-amber-500/40 text-xs font-mono text-gray-400 hover:text-white rounded-lg transition disabled:opacity-50"
+            >
+              <RefreshCw size={13} className={loadingRequests ? "animate-spin text-amber-500" : ""} />
+              <span>{loadingRequests ? "RELOADING..." : "REFRESH DATA"}</span>
+            </button>
+          </div>
+
+          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+            {depositRequests.filter(r => r.status === 'pending').length === 0 ? (
+              <div className="bg-[#090b11] rounded-xl p-8 text-center text-gray-500 border border-gray-850 text-xs font-mono">
+                ☕ Semua bersih! Tidak ada permintaan deposit member yang menunggu persetujuan.
+              </div>
+            ) : (
+              depositRequests
+                .filter(r => r.status === 'pending')
+                .map((req) => (
+                  <div
+                    key={req.id}
+                    className="bg-[#090b11] border border-gray-850 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-amber-500/20 transition shadow-inner"
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+                        <CreditCard size={16} />
+                      </div>
+                      <div className="min-w-0 text-left">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span className="text-sm font-bold text-white truncate text-glow-amber">
+                            {req.username}
+                          </span>
+                          <span className="text-[9px] font-mono bg-amber-500/10 text-amber-500 border border-amber-500/20 px-1 rounded uppercase font-bold">
+                            {req.method}
+                          </span>
+                          <span className="text-[9px] font-mono text-gray-500">
+                            {req.id}
+                          </span>
+                        </div>
+                        <span className="text-xs text-gray-400 font-mono block truncate">
+                          {req.email}
+                        </span>
+                        <div className="flex items-center gap-1 mt-1 text-[11px] font-mono text-gray-500">
+                          <span>Nominal:</span>
+                          <span className="text-emerald-400 font-bold">Rp {req.amount.toLocaleString("id-ID")}</span>
+                          <span>•</span>
+                          <span>Waktu: {new Date(req.timestamp).toLocaleString("id-ID")}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 shrink-0 self-end md:self-auto">
+                      <button
+                        onClick={() => handleProcessDeposit(req.id, req.email, 'completed')}
+                        className="flex items-center gap-1.5 py-1.5 px-3.5 bg-emerald-500 hover:bg-emerald-600 text-black font-black uppercase rounded-lg text-[10px] font-mono transition"
+                      >
+                        <Check size={12} />
+                        <span>SETUJUI</span>
+                      </button>
+                      <button
+                        onClick={() => handleProcessDeposit(req.id, req.email, 'failed')}
+                        className="flex items-center gap-1.5 py-1.5 px-3.5 bg-red-950/40 text-red-400 border border-red-900/40 hover:bg-red-900 hover:text-white rounded-lg text-[10px] font-mono transition"
+                      >
+                        <X size={12} />
+                        <span>TOLAK</span>
+                      </button>
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
         </div>
 
         {/* KELOLA USER & RESET PASSWORD PANEL */}

@@ -37,6 +37,7 @@ export default function LeaderboardAndQuests({
 }: LeaderboardAndQuestsProps) {
   const [activeSubTab, setActiveSubTab] = useState<'leaderboard' | 'quests' | 'shop'>('leaderboard');
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
+  const [recentGains, setRecentGains] = useState<Record<string, { score: number; coins: number; expiry: number }>>({});
 
   // Cost configs matching actions
   const DYNAMITE_COST = 12;
@@ -53,16 +54,71 @@ export default function LeaderboardAndQuests({
       { rank: 6, username: "BorSakti", minerTag: "borsakti#1032", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=borsakti", role: "geologist", score: 2800, ldrBalance: 450 },
       { rank: 7, username: "GemLuster", minerTag: "gemluster#7705", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=gemluster", role: "broker", score: 1200, ldrBalance: 180 }
     ];
-    setCompetitors(defaultCompetitors);
+
+    // Load persisted leaderboard data
+    let currentComps = defaultCompetitors;
+    const cached = localStorage.getItem("ldr_leaderboard_competitors");
+    if (cached) {
+      try {
+        currentComps = JSON.parse(cached);
+      } catch (e) {
+        currentComps = defaultCompetitors;
+      }
+    }
+
+    // Daily offline progression increment calculation
+    const lastUpdateStr = localStorage.getItem("ldr_leaderboard_last_update");
+    const nowTime = Date.now();
+    
+    if (lastUpdateStr) {
+      const lastUpdate = parseInt(lastUpdateStr, 10);
+      const elapsedMs = nowTime - lastUpdate;
+      // Define a "day" as elapsed fraction or hours. 
+      // Add realistic offline progression based on days passed (min 0 to prevent issues)
+      const elapsedDays = Math.max(0, elapsedMs / (24 * 60 * 60 * 1000));
+      
+      if (elapsedDays > 0.01) { // Apply progression even if user was away for more than ~15 mins
+        currentComps = currentComps.map((comp) => {
+          // Proportionate mock values per day depending on role/rank tier
+          const multiplier = comp.rank === 1 ? 2.0 : comp.rank <= 3 ? 1.5 : 1.0;
+          const scorePerDay = (Math.floor(Math.random() * 800) + 400) * multiplier;
+          const coinsPerDay = (Math.floor(Math.random() * 50) + 20) * multiplier;
+
+          const addedScore = Math.floor(scorePerDay * elapsedDays);
+          const addedCoin = Math.floor(coinsPerDay * elapsedDays);
+
+          return {
+            ...comp,
+            score: comp.score + addedScore,
+            ldrBalance: comp.ldrBalance + addedCoin
+          };
+        });
+      }
+    }
+
+    setCompetitors(currentComps);
+    localStorage.setItem("ldr_leaderboard_competitors", JSON.stringify(currentComps));
+    localStorage.setItem("ldr_leaderboard_last_update", nowTime.toString());
 
     // Dynamic timer ticker to increase competitors score simulating active online miners
     const interval = setInterval(() => {
       setCompetitors((prev) => {
-        return prev.map((comp) => {
-          // 40% chance of competitor gaining points/coins
-          if (Math.random() < 0.4) {
-            const addedScore = Math.floor(Math.random() * 80) + 10;
-            const addedCoin = Math.floor(Math.random() * 5) + 1;
+        const updated = prev.map((comp) => {
+          // 45% chance of competitor gaining points/coins
+          if (Math.random() < 0.45) {
+            const addedScore = Math.floor(Math.random() * 120) + 20;
+            const addedCoin = Math.floor(Math.random() * 8) + 2;
+
+            // Trigger visual gain toast for this specific competitor tag
+            setRecentGains((prevGains) => ({
+              ...prevGains,
+              [comp.minerTag]: {
+                score: addedScore,
+                coins: addedCoin,
+                expiry: Date.now() + 2500
+              }
+            }));
+
             return {
               ...comp,
               score: comp.score + addedScore,
@@ -71,10 +127,34 @@ export default function LeaderboardAndQuests({
           }
           return comp;
         });
-      });
-    }, 7000);
 
-    return () => clearInterval(interval);
+        localStorage.setItem("ldr_leaderboard_competitors", JSON.stringify(updated));
+        localStorage.setItem("ldr_leaderboard_last_update", Date.now().toString());
+        return updated;
+      });
+    }, 5000); // Trigger every 5 seconds for visual and lively updating experience!
+
+    // Clear expired gains
+    const cleanInterval = setInterval(() => {
+      setRecentGains((prev) => {
+        const next: Record<string, any> = {};
+        let updated = false;
+        const now = Date.now();
+        Object.keys(prev).forEach((k) => {
+          if (prev[k].expiry > now) {
+            next[k] = prev[k];
+          } else {
+            updated = true;
+          }
+        });
+        return updated ? next : prev;
+      });
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(cleanInterval);
+    };
   }, []);
 
   // Merge the user profile into the ranks list and sort them dynamically!
@@ -220,10 +300,24 @@ export default function LeaderboardAndQuests({
                         </span>
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-gray-200">
-                        {item.score.toLocaleString()} Pts
+                        <div className="flex flex-col items-end justify-center min-h-[36px]">
+                          <span className="transition-all duration-300">{item.score.toLocaleString()} Pts</span>
+                          {recentGains[item.minerTag] && (
+                            <span className="text-[10px] text-emerald-400 font-bold animate-bounce block shrink-0 select-none">
+                              +{recentGains[item.minerTag].score} Pts
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3 px-3 text-right font-mono text-amber-500 font-semibold">
-                        🪙 {item.ldrBalance.toLocaleString()} LDR
+                        <div className="flex flex-col items-end justify-center min-h-[36px]">
+                          <span className="transition-all duration-300">🪙 {item.ldrBalance.toLocaleString()} LDR</span>
+                          {recentGains[item.minerTag] && (
+                            <span className="text-[10px] text-amber-300 font-bold animate-pulse block shrink-0 select-none">
+                              +{recentGains[item.minerTag].coins} LDR
+                            </span>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

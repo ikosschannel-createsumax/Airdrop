@@ -455,6 +455,47 @@ export default function App() {
     return () => clearInterval(interval);
   }, [profile, rigs]);
 
+  // Periodically check Firestore for external balance updates (e.g. approved deposit requests)
+  useEffect(() => {
+    if (!profile) return;
+    const activeEmail = localStorage.getItem("ldr_active_email")?.toLowerCase().trim();
+    if (!activeEmail) return;
+
+    const interval = setInterval(() => {
+      import("./utils/firebase").then(({ fetchUserProfileFromFirebase }) => {
+        fetchUserProfileFromFirebase(activeEmail).then((firebaseUser) => {
+          if (firebaseUser) {
+            setProfile((current) => {
+              if (!current) return null;
+              if (
+                current.rupiahBalance !== firebaseUser.rupiahBalance || 
+                current.ldrBalance !== firebaseUser.ldrBalance
+              ) {
+                const suffix = `_${activeEmail}`;
+                const nextProfile = {
+                  ...current,
+                  rupiahBalance: firebaseUser.rupiahBalance,
+                  ldrBalance: firebaseUser.ldrBalance
+                };
+                
+                localStorage.setItem(`ldr_miner_profile${suffix}`, JSON.stringify(nextProfile));
+                localStorage.setItem("ldr_miner_profile", JSON.stringify(nextProfile));
+                
+                triggerNotification(`🔔 Saldo Rupiah terupdate: Rp ${firebaseUser.rupiahBalance.toLocaleString("id-ID")}!`);
+                return nextProfile;
+              }
+              return current;
+            });
+          }
+        }).catch((err) => {
+          console.warn("Error in periodic profile check:", err);
+        });
+      });
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [profile]);
+
   const handleDeductRupiahBalance = (amount: number) => {
     if (!profile) return;
     const nextRupiah = (profile.rupiahBalance || 0) - amount;
@@ -1013,6 +1054,7 @@ export default function App() {
               adminDanaNo={adminDanaNo}
               adminBcaNo={adminBcaNo}
               adminMandiriNo={adminMandiriNo}
+              isAdmin={isAdminUser()}
             />
           )}
 

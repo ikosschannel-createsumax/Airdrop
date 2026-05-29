@@ -30,5 +30,10 @@ service cloud.firestore {
       allow create, update: if isValidId(userId) && isValidUser(request.resource.data);
       allow delete: if true;
     }
+
+    match /deposit_requests/{requestId} {
+      allow read, create, update: if isSignedIn();
+      allow delete: if true;
+    }
   }
 }

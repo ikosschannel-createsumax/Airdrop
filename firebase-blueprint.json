@@ -19,12 +19,31 @@
         "registeredAt": { "type": "string" }
       },
       "required": ["email", "username"]
+    },
+    "deposit_request": {
+      "title": "Deposit Request",
+      "description": "Pending and completed deposit requests from users waiting for admin approval",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "username": { "type": "string" },
+        "amount": { "type": "number" },
+        "method": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "completed", "failed"] },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "email", "username", "amount", "method", "status", "timestamp"]
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "user",
       "description": "Active user accounts with level and balances"
+    },
+    "/deposit_requests/{requestId}": {
+      "schema": "deposit_request",
+      "description": "Deposit requests processed by SYSTEM/CS and verified by Admin"
     }
   }
 }

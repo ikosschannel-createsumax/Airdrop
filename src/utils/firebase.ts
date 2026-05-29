@@ -207,3 +207,98 @@ export async function deleteUserFromFirebase(email: string): Promise<boolean> {
     return false;
   }
 }
+
+export interface FirebaseDepositRequest {
+  id: string;
+  email: string;
+  username: string;
+  amount: number;
+  method: string;
+  status: 'pending' | 'completed' | 'failed';
+  timestamp: string;
+}
+
+// Create deposit request in Firebase
+export async function createDepositRequestInFirebase(
+  id: string,
+  email: string,
+  username: string,
+  amount: number,
+  method: string
+): Promise<boolean> {
+  const path = `deposit_requests/${id}`;
+  const payload: FirebaseDepositRequest = {
+    id,
+    email: email.toLowerCase().trim(),
+    username,
+    amount,
+    method,
+    status: 'pending',
+    timestamp: new Date().toISOString()
+  };
+
+  try {
+    const docRef = doc(db, "deposit_requests", id);
+    await setDoc(docRef, payload);
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+    return false;
+  }
+}
+
+// Fetch all deposit requests from Firebase
+export async function fetchAllDepositRequestsFromFirebase(): Promise<FirebaseDepositRequest[]> {
+  const path = "deposit_requests";
+  try {
+    const collRef = collection(db, "deposit_requests");
+    const snap = await getDocs(collRef);
+    const results: FirebaseDepositRequest[] = [];
+    snap.forEach((doc) => {
+      results.push(doc.data() as FirebaseDepositRequest);
+    });
+    // Sort by timestamp descending
+    results.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return results;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, path);
+    return [];
+  }
+}
+
+// Update deposit request status and update user's balance synchronously
+export async function processDepositRequestInFirebase(
+  requestId: string,
+  userEmail: string,
+  status: 'completed' | 'failed'
+): Promise<boolean> {
+  const path = `deposit_requests/${requestId}`;
+  try {
+    const reqRef = doc(db, "deposit_requests", requestId);
+    const reqSnap = await getDoc(reqRef);
+    if (!reqSnap.exists()) return false;
+
+    const reqData = reqSnap.data() as FirebaseDepositRequest;
+    if (reqData.status !== 'pending') return false; // already done
+
+    // 1. Update request status
+    await updateDoc(reqRef, { status });
+
+    // 2. If approved/completed, update user's balance
+    if (status === 'completed') {
+      const userDocId = getFirebaseDocId(userEmail);
+      const userRef = doc(db, "users", userDocId);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data() as FirebaseUserRecord;
+        const currentRp = userData.rupiahBalance || 0;
+        const nextRp = currentRp + reqData.amount;
+        await updateDoc(userRef, { rupiahBalance: nextRp });
+      }
+    }
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+    return false;
+  }
+}

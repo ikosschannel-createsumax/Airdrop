@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from "react";
 import { MinerProfile } from "../types";
 import { playClickSound, playUpgradeSound } from "../utils/audio";
+import { createDepositRequestInFirebase } from "../utils/firebase";
 import { 
   Landmark, 
   Wallet, 
@@ -35,6 +36,7 @@ interface PayoutSystemProps {
   adminDanaNo: string;
   adminBcaNo: string;
   adminMandiriNo: string;
+  isAdmin?: boolean;
 }
 
 interface TransactionRecord {
@@ -67,7 +69,8 @@ export default function PayoutSystem({
   adminQrisPayload,
   adminDanaNo,
   adminBcaNo,
-  adminMandiriNo
+  adminMandiriNo,
+  isAdmin = false
 }: PayoutSystemProps) {
   const getUserKey = (baseKey: string) => {
     const activeEmail = localStorage.getItem("ldr_active_email")?.toLowerCase().trim();
@@ -119,46 +122,105 @@ export default function PayoutSystem({
     playClickSound();
   };
 
-  const handleConfirmDepositPaid = () => {
+  const handleConfirmDepositPaid = async () => {
     if (!activeDepositAmount) return;
     const amt = activeDepositAmount;
     const method = activeDepositMethod;
-
-    // Add balance
-    onAddBalances(0, amt);
-
-    // Add transaction
     const newTxId = `DEP-${Math.floor(100000 + Math.random() * 900000)}`;
-    const newTx: TransactionRecord = {
-      id: newTxId,
-      timestamp: new Date().toISOString(),
-      method: `DEPOSIT (${method})`,
-      destination: "Reaktor Tambang",
-      amountRupiah: amt,
-      amountFiatCurrency: `Rp ${amt.toLocaleString("id-ID")}`,
-      status: 'completed'
-    };
-    const updatedTx = [newTx, ...transactions];
-    setTransactions(updatedTx);
-    localStorage.setItem(getUserKey("ldr_miner_transactions"), JSON.stringify(updatedTx));
 
-    // Create Notification Alert
-    const newAlert: AccountAlert = {
-      id: `ALERT-${newTxId}`,
-      title: "⚡ Deposit Sukses Terverifikasi!",
-      description: `Pengisian Saldo Rupiah via ${method} sebesar Rp ${amt.toLocaleString("id-ID")} telah berhasil terverifikasi otomatis oleh Admin.`,
-      timestamp: new Date().toISOString(),
-      type: "payout",
-      isRead: false
-    };
-    const updatedAlerts = [newAlert, ...alerts];
-    setAlerts(updatedAlerts);
-    localStorage.setItem(getUserKey("ldr_miner_alerts"), JSON.stringify(updatedAlerts));
+    if (isAdmin) {
+      // Admin: Instant direct processing
+      onAddBalances(0, amt);
 
-    setActiveDepositAmount(null);
-    setDepositAmount("25000");
-    playUpgradeSound();
-    triggerNotification(`✅ Sukses mengisi saldo Rp ${amt.toLocaleString("id-ID")} via ${method}!`);
+      // Add transaction
+      const newTx: TransactionRecord = {
+        id: newTxId,
+        timestamp: new Date().toISOString(),
+        method: `DEPOSIT (${method})`,
+        destination: "Reaktor Tambang (Instan Admin)",
+        amountRupiah: amt,
+        amountFiatCurrency: `Rp ${amt.toLocaleString("id-ID")}`,
+        status: 'completed'
+      };
+      const updatedTx = [newTx, ...transactions];
+      setTransactions(updatedTx);
+      localStorage.setItem(getUserKey("ldr_miner_transactions"), JSON.stringify(updatedTx));
+
+      // Create Notification Alert
+      const newAlert: AccountAlert = {
+        id: `ALERT-${newTxId}`,
+        title: "⚡ [ADMIN] Deposit Sukses Terverifikasi!",
+        description: `Pengisian Saldo Rupiah via ${method} sebesar Rp ${amt.toLocaleString("id-ID")} telah berhasil terverifikasi otomatis secara instan oleh sistem admin.`,
+        timestamp: new Date().toISOString(),
+        type: "payout",
+        isRead: false
+      };
+      const updatedAlerts = [newAlert, ...alerts];
+      setAlerts(updatedAlerts);
+      localStorage.setItem(getUserKey("ldr_miner_alerts"), JSON.stringify(updatedAlerts));
+
+      setActiveDepositAmount(null);
+      setDepositAmount("25000");
+      playUpgradeSound();
+      triggerNotification(`✅ [ADMIN] Sukses mengisi saldo Rp ${amt.toLocaleString("id-ID")} via ${method}!`);
+    } else {
+      // User Member: Needs System/CS approval and pending state in Admin Panel & Firestore
+      setIsProcessing(true);
+      const email = localStorage.getItem("ldr_active_email") || profile.username.toLowerCase();
+      
+      try {
+        const success = await createDepositRequestInFirebase(
+          newTxId,
+          email,
+          profile.username,
+          amt,
+          method
+        );
+
+        if (!success) {
+          triggerNotification("❌ Gagal mengirim pengajuan deposit ke CS. Silakan coba lagi.");
+          setIsProcessing(false);
+          return;
+        }
+
+        // Add pending transaction locally
+        const newTx: TransactionRecord = {
+          id: newTxId,
+          timestamp: new Date().toISOString(),
+          method: `DEPOSIT (${method})`,
+          destination: "Verifikasi (Sistem/CS)",
+          amountRupiah: amt,
+          amountFiatCurrency: `Rp ${amt.toLocaleString("id-ID")}`,
+          status: 'pending'
+        };
+        const updatedTx = [newTx, ...transactions];
+        setTransactions(updatedTx);
+        localStorage.setItem(getUserKey("ldr_miner_transactions"), JSON.stringify(updatedTx));
+
+        // Create Pending Alert
+        const newAlert: AccountAlert = {
+          id: `ALERT-${newTxId}`,
+          title: "⏳ Deposit Diproses Sistem/CS",
+          description: `Pengisian Saldo Rupiah via ${method} sebesar Rp ${amt.toLocaleString("id-ID")} telah dikirim ke CS/Sistem. Menunggu persetujuan admin.`,
+          timestamp: new Date().toISOString(),
+          type: "payout",
+          isRead: false
+        };
+        const updatedAlerts = [newAlert, ...alerts];
+        setAlerts(updatedAlerts);
+        localStorage.setItem(getUserKey("ldr_miner_alerts"), JSON.stringify(updatedAlerts));
+
+        setActiveDepositAmount(null);
+        setDepositAmount("25000");
+        playUpgradeSound();
+        triggerNotification(`⏳ Sukses mengajukan deposit Rp ${amt.toLocaleString("id-ID")} via ${method}! Menunggu persetujuan admin.`);
+      } catch (err) {
+        console.error("Deposit request error:", err);
+        triggerNotification("❌ Terjadi kesalahan jaringan saat mengajukan deposit.");
+      } finally {
+        setIsProcessing(false);
+      }
+    }
   };
 
   const handleSwapLdr = (e: React.FormEvent) => {
