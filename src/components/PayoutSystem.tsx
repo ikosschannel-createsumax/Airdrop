@@ -618,49 +618,76 @@ export default function PayoutSystem({
 
               {/* QRIS Layout */}
               {activeDepositMethod === "QRIS" && (
-                <div className="bg-gray-950/80 border border-gray-850 p-4 rounded-xl text-center space-y-3.5 flex flex-col items-center">
-                  <p className="text-[10px] font-mono text-amber-500 uppercase tracking-widest font-bold">PINDAI KODE QRIS DI BAWAH:</p>
-                  <div className="bg-white p-3.5 rounded-xl border-4 border-gray-800 shadow-md">
+                <div className="bg-gray-950/80 border border-gray-850 p-5 rounded-2xl text-center space-y-4 flex flex-col items-center">
+                  <p className="text-[10px] font-mono text-amber-400 uppercase tracking-widest font-black bg-amber-500/10 px-2.5 py-1 rounded-md">
+                    ⚡ PINDAI KODE QRIS MERCHANT DANA:
+                  </p>
+                  <div className="bg-white p-4 rounded-2xl border-4 border-amber-500/80 shadow-xl transition hover:scale-102 duration-300">
                     {adminQrisMethod === 'dynamic' ? (
                       <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(adminQrisPayload)}`} 
-                        alt="Merchant QR" 
-                        className="w-40 h-40"
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(adminQrisPayload)}`} 
+                        alt="Merchant QRIS" 
+                        className="w-52 h-52 object-contain"
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <div className="w-40 h-40 bg-zinc-100 flex flex-col items-center justify-center text-center text-zinc-800 p-2 rounded-lg">
-                        <span className="text-xl font-bold">📷 STATIC QR</span>
-                        <p className="text-[9px] text-zinc-500 mt-1">Gunakan link statis / QR Code admin</p>
+                      <div className="w-52 h-52 bg-zinc-100 flex flex-col items-center justify-center text-center text-zinc-850 p-3 rounded-xl border border-dashed border-gray-300">
+                        <span className="text-2xl font-black">📷 STATIC QR</span>
+                        <p className="text-[10px] text-zinc-500 mt-1.5 leading-relaxed font-sans">
+                          Gunakan kode QRIS statis di galeri HP Anda
+                        </p>
                       </div>
                     )}
                   </div>
-                  <p className="text-[9px] text-gray-400 font-mono leading-relaxed max-w-xs">
-                    Screenshot / simpan kode QRIS di atas lalu scan menggunakan kamera ShopeePay, Gopay, OVO, DANA atau M-Banking Anda.
+                  <div className="space-y-1 bg-[#090b11] p-3 rounded-lg border border-gray-850 max-w-xs">
+                    <p className="text-[9.5px] text-zinc-400 font-mono leading-relaxed">
+                      💡 <strong>TIPS PINDAI:</strong> Jika gagal, naikkan kecerahan layar HP Anda atau bersihkan lensa kamera sebelum melakukan scan e-wallet.
+                    </p>
+                  </div>
+                  <p className="text-[9px] text-gray-450 font-mono leading-relaxed max-w-xs">
+                    Screenshot layar ini lalu scan menggunakan Pemindai Pintar pada aplikasi <strong>DANA, ShopeePay, GoPay, OVO, LinkAja</strong> atau M-Banking Anda.
                   </p>
                 </div>
               )}
 
               {/* GOPAY / DANA Method */}
               {activeDepositMethod === "GOPAY/DANA" && (
-                <div className="bg-gray-950/80 border border-gray-850 p-4 rounded-xl space-y-3">
-                  <p className="text-[10px] font-mono text-amber-500 uppercase tracking-widest font-bold font-black">TRANSFER DANA ADMIN:</p>
-                  <div className="space-y-2 text-xs font-mono">
+                <div className="bg-gray-950/80 border border-gray-850 p-5 rounded-2xl space-y-4 flex flex-col items-center text-center">
+                  <p className="text-[10px] font-mono text-blue-400 uppercase tracking-widest font-black bg-blue-500/10 px-2.5 py-1 rounded-md">
+                    📲 SCAN BARCODE DANA INSTANT:
+                  </p>
+                  
+                  {/* Generated DANA Barcode for Direct Scanning */}
+                  <div className="bg-white p-4 rounded-2xl border-4 border-blue-500 shadow-xl transition hover:scale-102 duration-300">
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(`https://qr.dana.id/v1/2` + adminDanaNo.replace(/[^0-9]/g, ''))}`} 
+                      alt="DANA Transfer Barcode" 
+                      className="w-51 h-51 object-contain"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+
+                  <p className="text-[10px] text-gray-300 font-mono leading-relaxed max-w-xs bg-blue-950/20 p-2.5 rounded-lg border border-blue-900/30">
+                    🤖 <strong>KODE TRANSFER COCOK DANA:</strong> Scan barcode di atas langsung lewat kamera pemindai aplikasi DANA Anda untuk deteksi otomatis tujuan pembayaran.
+                  </p>
+
+                  <div className="space-y-2.5 text-xs font-mono w-full text-left">
                     <div className="bg-[#0e1017] p-3 rounded-lg border border-gray-800 flex justify-between items-center">
                       <div>
                         <span className="text-[9px] text-gray-500 block">NOMER DANA TUJUAN:</span>
-                        <span className="text-white font-bold">{adminDanaNo}</span>
+                        <span className="text-white font-bold text-sm tracking-wide">{adminDanaNo}</span>
                       </div>
                       <button 
                         type="button"
                         onClick={() => { navigator.clipboard.writeText(adminDanaNo); triggerNotification("Nomor DANA tersalin!"); }}
-                        className="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold rounded text-[9px]"
+                        className="px-3 py-1.5 bg-blue-950/50 hover:bg-blue-900 border border-blue-800 text-blue-300 font-bold rounded-lg text-[10px] uppercase transition active:scale-95"
                       >
-                        SALIN
+                        SALIN NOMOR
                       </button>
                     </div>
-                    <p className="text-[9px] text-gray-500 mt-1 italic">
-                      *Silakan transfer uang sejumlah Rp {activeDepositAmount.toLocaleString("id-ID")} ke nomor akun DANA admin di atas.
+                    
+                    <p className="text-[9.5px] text-gray-500 mt-1 italic text-center font-sans">
+                      *Atau masukkan nominal transfer sejumlah <strong>Rp {activeDepositAmount.toLocaleString("id-ID")}</strong> ke nomor akun DANA admin di atas.
                     </p>
                   </div>
                 </div>
