@@ -1039,6 +1039,8 @@ export default function App() {
               onBuyTool={handleBuyShopTool}
               dynamiteCount={dynamiteCount}
               magnetCount={magnetCount}
+              onAddBalances={handleAddBalances}
+              triggerNotification={triggerNotification}
             />
           )}
 

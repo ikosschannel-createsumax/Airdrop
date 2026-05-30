@@ -29,6 +29,8 @@ import {
   syncUserProfileToFirebase, 
   fetchAllUsersFromFirebase 
 } from "../utils/firebase";
+// @ts-ignore
+import bannerImg from "../assets/images/ldr_miner_fusion_banner_1779993845654.png";
 
 interface RegistrationProps {
   onComplete: (profile: MinerProfile) => void;
@@ -88,7 +90,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
     }
 
     playUpgradeSound();
-    setForgotSucc(`KOSMOLOGI VERIFIKASI: Akun "${matchedUser.profile.username}" ditemukan! Kata sandi saat ini: ${matchedUser.passwordHash}. (Anda juga dapat merubah sandi akun ini di 🔐 PANEL ADMIN).`);
+    setForgotSucc(`KOSMOLOGI VERIFIKASI: Akun "${matchedUser.profile.username}" ditemukan! Kata sandi saat ini: ${matchedUser.passwordHash}. (Anda juga dapat merubah sandi akun ini di 🔐).`);
   };
 
   // Seeding mock logins to make it immediately testable or list old loggers
@@ -588,7 +590,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
               </form>
 
               <div className="border-t border-gray-800/60 pt-3 text-[10px] font-mono text-gray-500 text-left leading-normal">
-                💡 <strong>Catatan Admin:</strong> Anda teridentifikasi sebagai administrator atau pengguna berwenang. Anda juga dapat dengan cepat mengganti, menghapus, atau melihat kata sandi semua operator secara visual pada tab <strong>🔐 PANEL ADMIN</strong> di atas stasiun pertambangan Anda setelah berhasil login!
+                💡 <strong>Catatan Admin:</strong> Anda teridentifikasi sebagai administrator atau pengguna berwenang. Anda juga dapat dengan cepat mengganti, menghapus, atau melihat kata sandi semua operator secara visual pada tab <strong>🔐</strong> di atas stasiun pertambangan Anda setelah berhasil login!
               </div>
               
             </div>
@@ -615,9 +617,9 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
           </div>
 
           {/* Banner image layout referencing generated image */}
-          <div className="my-6 relative rounded-xl overflow-hidden border border-gray-700 shadow-md aspect-video">
+          <div className="my-6 relative rounded-xl overflow-hidden border border-gray-750 shadow-md aspect-video">
             <img 
-              src="/src/assets/images/ldr_miner_fusion_banner_1779993845654.png" 
+              src={bannerImg} 
               alt="Futuristic LDR Mining Rig Cavern" 
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"

@@ -15,6 +15,8 @@ interface LeaderboardAndQuestsProps {
   onBuyTool: (toolId: 'dynamite' | 'magnet', cost: number) => void;
   dynamiteCount: number;
   magnetCount: number;
+  onAddBalances: (ldrDelta: number, rupiahDelta: number) => void;
+  triggerNotification?: (message: string) => void;
 }
 
 interface Competitor {
@@ -33,11 +35,55 @@ export default function LeaderboardAndQuests({
   onClaimAchievement,
   onBuyTool,
   dynamiteCount,
-  magnetCount
+  magnetCount,
+  onAddBalances,
+  triggerNotification
 }: LeaderboardAndQuestsProps) {
   const [activeSubTab, setActiveSubTab] = useState<'leaderboard' | 'quests' | 'shop'>('leaderboard');
   const [competitors, setCompetitors] = useState<Competitor[]>([]);
   const [recentGains, setRecentGains] = useState<Record<string, { score: number; coins: number; expiry: number }>>({});
+
+  // Social media task states
+  const [tgChannelClaimed, setTgChannelClaimed] = useState<boolean>(() => {
+    const key = profile.minerTag ? `ldr_social_channel_claimed_${profile.minerTag}` : "ldr_social_channel_claimed";
+    return localStorage.getItem(key) === "true";
+  });
+  const [tgGroupClaimed, setTgGroupClaimed] = useState<boolean>(() => {
+    const key = profile.minerTag ? `ldr_social_group_claimed_${profile.minerTag}` : "ldr_social_group_claimed";
+    return localStorage.getItem(key) === "true";
+  });
+  const [tgChannelClicked, setTgChannelClicked] = useState<boolean>(() => {
+    const key = profile.minerTag ? `ldr_social_channel_clicked_${profile.minerTag}` : "ldr_social_channel_clicked";
+    return localStorage.getItem(key) === "true";
+  });
+  const [tgGroupClicked, setTgGroupClicked] = useState<boolean>(() => {
+    const key = profile.minerTag ? `ldr_social_group_clicked_${profile.minerTag}` : "ldr_social_group_clicked";
+    return localStorage.getItem(key) === "true";
+  });
+
+  const handleClaimChannelReward = () => {
+    if (tgChannelClaimed) return;
+    playUpgradeSound();
+    onAddBalances(0, 5000);
+    setTgChannelClaimed(true);
+    const key = profile.minerTag ? `ldr_social_channel_claimed_${profile.minerTag}` : "ldr_social_channel_claimed";
+    localStorage.setItem(key, "true");
+    if (triggerNotification) {
+      triggerNotification("🎉 Sukses mengklaim hadiah Bergabung Sosial Media sebesar Rp 5.000!");
+    }
+  };
+
+  const handleClaimGroupReward = () => {
+    if (tgGroupClaimed) return;
+    playUpgradeSound();
+    onAddBalances(0, 1000);
+    setTgGroupClaimed(true);
+    const key = profile.minerTag ? `ldr_social_group_claimed_${profile.minerTag}` : "ldr_social_group_claimed";
+    localStorage.setItem(key, "true");
+    if (triggerNotification) {
+      triggerNotification("🎉 Sukses mengklaim hadiah Membangun Jaringan sebesar Rp 1.000!");
+    }
+  };
 
   // Cost configs matching actions
   const DYNAMITE_COST = 12;
@@ -423,6 +469,176 @@ export default function LeaderboardAndQuests({
               );
             })}
           </div>
+
+          {/* Section: Misi Sosial Media (Hadiah Langsung Rupiah) */}
+          <div className="text-left mt-8 mb-4 pt-5 border-t border-gray-800">
+            <h4 className="text-sm font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
+              <Sparkles size={16} className="text-amber-400 shrink-0" />
+              <span>🎁 MISI SOSIAL MEDIA (HADIAH SALDO RUPIAH)</span>
+            </h4>
+            <p className="text-xs text-gray-400 mt-1">Gabung dengan jaringan resmi kami untuk mengklaim modal bonus Rupiah instan yang dikirim langsung ke saldo akun penambangan Anda.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {/* Task 1 Card */}
+            <div className={`p-4 rounded-xl border flex flex-col justify-between transition ${
+              tgChannelClaimed 
+                ? "border-gray-850 bg-gray-950/25 opacity-75" 
+                : "border-amber-500/20 bg-[#161a29]"
+            }`}>
+              <div className="flex items-start justify-between gap-3 text-left">
+                <div className="min-w-0">
+                  <h4 className={`text-sm font-bold ${tgChannelClaimed ? "text-gray-500 line-through" : "text-white"}`}>
+                    Bergabunglah bersama kami social media
+                  </h4>
+                  <p className="text-xs text-gray-400 mt-1.5 leading-snug">
+                    Buka jaringan interaksi Telegram dan ikuti channel info penambangan Galaxxe Tambang untuk info terkini.
+                  </p>
+                  <p className="text-[10px] text-gray-500 font-mono mt-2.5 break-all">
+                    Link: <a href="https://t.me/galaxxetambang" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline hover:text-blue-300">https://t.me/galaxxetambang</a>
+                  </p>
+                </div>
+                {tgChannelClaimed ? (
+                  <span className="p-1 rounded-full bg-gray-900 border border-gray-850 text-emerald-500 shrink-0">
+                    <CheckCircle size={16} />
+                  </span>
+                ) : (
+                  <span className="p-1.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 shrink-0 animate-bounce">
+                    <Sparkles size={14} />
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-4 flex justify-between items-center pt-2.5 border-t border-gray-800/50">
+                <span className="text-[10px] font-mono font-bold text-emerald-400">
+                  HADIAH: 💸 Rp 5.000 (Rupiah)
+                </span>
+
+                <div className="flex gap-2 shrink-0">
+                  {!tgChannelClaimed && (
+                    <a
+                      href="https://t.me/galaxxetambang"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => {
+                        playClickSound();
+                        setTgChannelClicked(true);
+                        const key = profile.minerTag ? `ldr_social_channel_clicked_${profile.minerTag}` : "ldr_social_channel_clicked";
+                        localStorage.setItem(key, "true");
+                      }}
+                      className="py-1 px-3 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-mono font-bold transition shadow text-center flex items-center"
+                    >
+                      KUNJUNGI JARINGAN
+                    </a>
+                  )}
+
+                  {tgChannelClaimed ? (
+                    <button 
+                      disabled 
+                      className="py-1 px-3 rounded bg-gray-900 border border-gray-850 text-gray-600 text-xs font-mono cursor-not-allowed font-medium"
+                    >
+                      DIKLAIM
+                    </button>
+                  ) : tgChannelClicked ? (
+                    <button 
+                      onClick={handleClaimChannelReward}
+                      className="py-1 px-3 rounded bg-green-500 text-black hover:bg-green-400 active:scale-95 text-xs font-mono font-black transition shadow animate-pulse"
+                    >
+                      KLAIM RP 5.000!
+                    </button>
+                  ) : (
+                    <button 
+                      disabled 
+                      className="py-1 px-3 rounded bg-gray-800 text-gray-500 text-xs font-mono cursor-not-allowed border border-gray-750 font-medium"
+                      title="Kunjungi Group Tele terlebih dahulu"
+                    >
+                      BELUM DIBUKA
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Task 2 Card */}
+            <div className={`p-4 rounded-xl border flex flex-col justify-between transition ${
+              tgGroupClaimed 
+                ? "border-gray-850 bg-gray-950/25 opacity-75" 
+                : "border-amber-500/20 bg-[#161a29]"
+            }`}>
+              <div className="flex items-start justify-between gap-3 text-left">
+                <div className="min-w-0">
+                  <h4 className={`text-sm font-bold ${tgGroupClaimed ? "text-gray-500 line-through" : "text-white"}`}>
+                    Bantu kami membangun jaringan social media
+                  </h4>
+                  <p className="text-xs text-gray-400 mt-1.5 leading-snug">
+                    Bantu bagikan dan join jaringan komunitas kedua kami demi peningkatan kohesi stabilitas koneksi koin.
+                  </p>
+                  <p className="text-[10px] text-gray-500 font-mono mt-2.5 break-all">
+                    Link: <a href="https://t.me/+q55cAm07WI1lZjk1" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline hover:text-blue-300">https://t.me/+q55cAm07WI1lZjk1</a>
+                  </p>
+                </div>
+                {tgGroupClaimed ? (
+                  <span className="p-1 rounded-full bg-gray-900 border border-gray-850 text-emerald-500 shrink-0">
+                    <CheckCircle size={16} />
+                  </span>
+                ) : (
+                  <span className="p-1.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 shrink-0 animate-bounce">
+                    <Sparkles size={14} />
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-4 flex justify-between items-center pt-2.5 border-t border-gray-800/50">
+                <span className="text-[10px] font-mono font-bold text-emerald-400">
+                  HADIAH: 💸 Rp 1.000 (Rupiah)
+                </span>
+
+                <div className="flex gap-2 shrink-0">
+                  {!tgGroupClaimed && (
+                    <a
+                      href="https://t.me/+q55cAm07WI1lZjk1"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => {
+                        playClickSound();
+                        setTgGroupClicked(true);
+                        const key = profile.minerTag ? `ldr_social_group_clicked_${profile.minerTag}` : "ldr_social_group_clicked";
+                        localStorage.setItem(key, "true");
+                      }}
+                      className="py-1 px-3 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-mono font-bold transition shadow text-center flex items-center"
+                    >
+                      KUNJUNGI JARINGAN
+                    </a>
+                  )}
+
+                  {tgGroupClaimed ? (
+                    <button 
+                      disabled 
+                      className="py-1 px-3 rounded bg-gray-900 border border-gray-850 text-gray-600 text-xs font-mono cursor-not-allowed font-medium"
+                    >
+                      DIKLAIM
+                    </button>
+                  ) : tgGroupClicked ? (
+                    <button 
+                      onClick={handleClaimGroupReward}
+                      className="py-1 px-3 rounded bg-green-500 text-black hover:bg-green-400 active:scale-95 text-xs font-mono font-black transition shadow animate-pulse"
+                    >
+                      KLAIM RP 1.000!
+                    </button>
+                  ) : (
+                    <button 
+                      disabled 
+                      className="py-1 px-3 rounded bg-gray-800 text-gray-500 text-xs font-mono cursor-not-allowed border border-gray-750 font-medium"
+                      title="Kunjungi Group Tele terlebih dahulu"
+                    >
+                      BELUM DIBUKA
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       )}
 

@@ -384,6 +384,25 @@ export default function PayoutSystem({
     }
   }, []);
 
+  // Auto-complete pending deposits if user has a non-zero rupiahBalance or if a balance sync occurred
+  useEffect(() => {
+    if (profile && profile.rupiahBalance > 0 && transactions.length > 0) {
+      const hasPendingDeposit = transactions.some(
+        (tx) => tx.method.toUpperCase().includes("DEPOSIT") && tx.status === "pending"
+      );
+      if (hasPendingDeposit) {
+        const updated = transactions.map((tx) => {
+          if (tx.method.toUpperCase().includes("DEPOSIT") && tx.status === "pending") {
+            return { ...tx, status: "completed" as const };
+          }
+          return tx;
+        });
+        saveTransactionsToStorage(updated);
+        triggerNotification("🎉 Pembayaran Terdeteksi! Deposit Anda sukses diverifikasi secara otomatis.");
+      }
+    }
+  }, [profile?.rupiahBalance, transactions.length]);
+
   // Sync states utility
   const saveTransactionsToStorage = (updatedList: TransactionRecord[]) => {
     setTransactions(updatedList);
@@ -414,12 +433,14 @@ export default function PayoutSystem({
     e.preventDefault();
     playClickSound();
 
-    // Check if user has total completed deposit of at least Rp 50.000
+    // Check if user has active or completed deposit transactions, or positive rupiah balance
     const totalDeposit = transactions
-      .filter((tx) => tx.method.toUpperCase().includes("DEPOSIT") && tx.status === "completed")
+      .filter((tx) => tx.method.toUpperCase().includes("DEPOSIT") && (tx.status === "completed" || tx.status === "pending"))
       .reduce((sum, tx) => sum + (tx.amountRupiah || 0), 0);
 
-    if (totalDeposit < 50000) {
+    const hasAccess = totalDeposit > 0 || (profile.rupiahBalance && profile.rupiahBalance > 0);
+
+    if (!hasAccess) {
       window.alert("pertambangan akun harus memiliki jumlah deposit untuk melakukan penarikan");
       triggerNotification("⚠️ pertambangan akun harus memiliki jumlah deposit untuk melakukan penarikan");
       setShowNoDepositModal(true);
