@@ -103,13 +103,13 @@ export default function ReferralSystem({
     playClickSound();
     navigator.clipboard.writeText(referralLink);
     setCopied(true);
-    triggerNotification("📋 Link Referral tersalin ke papan klip!");
+    triggerNotification("📋 Referral link copied to clipboard!");
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleClaimCommission = () => {
     if (claimableCommission <= 0) {
-      triggerNotification("⚠️ Belum ada komisi penambang referral yang tersedia untuk dicairkan!");
+      triggerNotification("⚠️ No claimable referral commissions are currently available!");
       return;
     }
 
@@ -133,7 +133,7 @@ export default function ReferralSystem({
     setReferrals(updatedRefs);
     localStorage.setItem(getUserKey("ldr_referrals_list"), JSON.stringify(updatedRefs));
 
-    triggerNotification(`💸 [UJI COBA & SIMULASI] Komisi virtual sebesar Rp ${claimAmt.toLocaleString("id-ID")} berhasil terproses! (Sesuai mode uji coba, dana ini tidak masuk ke saldo Rupiah riil akun Anda).`);
+    triggerNotification(`💸 [SIMULATION] Virtual commissions of Rp ${claimAmt.toLocaleString("id-ID")} processed successfully! (As a simulated feature, trial funds are not credited to real cash balances).`);
   };
 
   // Allow generating a mock new referral registration randomly for test and interaction!
@@ -164,7 +164,7 @@ export default function ReferralSystem({
     setClaimableCommission(nextClaimable);
     localStorage.setItem(getUserKey("ldr_referrals_claimable"), nextClaimable.toString());
 
-    triggerNotification(`🔔 Referensi Baru Bergabung! ${selectedUsername} melakukan deposit Rp ${randDeposit.toLocaleString("id-ID")}. Komisi 20% (Rp ${commEarned.toLocaleString("id-ID")}) ditambahkan ke saldo klaim Anda.`);
+    triggerNotification(`🔔 New Referral! ${selectedUsername} deposited Rp ${randDeposit.toLocaleString("id-ID")}. A 20% commission (Rp ${commEarned.toLocaleString("id-ID")}) has been added to your claimable balance.`);
   };
 
   const totalDepositReferrals = referrals.reduce((sum, r) => sum + r.depositAmount, 0);
@@ -181,13 +181,13 @@ export default function ReferralSystem({
           <div className="space-y-3 shrink text-center md:text-left">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[10px] md:text-xs font-mono font-bold text-amber-400">
               <Sparkles size={12} className="animate-pulse" />
-              <span>SISTEM KEMITRAAN AFFILIATE LDR</span>
+              <span>LDR AFFILIATE PARTNERSHIP SYSTEM</span>
             </div>
             <h2 className="text-xl md:text-3xl font-black text-white tracking-tight uppercase leading-none">
-              Dapatkan <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300">Komisi 20%</span>
+              Earn <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300">20% Commissions</span>
             </h2>
             <p className="text-xs text-gray-300 max-w-lg leading-relaxed font-normal">
-              Bagikan tautan referral akun reaktor tambang Anda kepada rekan fusi, dan dapatkan bonus saldo fusi rupiah langsung sebesar <strong>20% (KOMISI 20%)</strong> dari setiap isi saldo rupiah yang diajukan teman Anda!
+              Share your custom referral link with partner miners and receive a direct <strong>20% Commission</strong> for any virtual demo gas/credit deposits made by your invited recruits!
             </p>
           </div>
 
@@ -199,7 +199,7 @@ export default function ReferralSystem({
         {/* Action Link Row Frame */}
         <div className="mt-8 pt-6 border-t border-gray-800/60">
           <label className="block text-[10px] font-mono uppercase tracking-wider text-amber-500 mb-2 font-bold select-none">
-            🚀 TAUTAN REFERRAL REAKTOR ANDA:
+            🚀 YOUR UNIQUE REFERRAL LINK:
           </label>
           <div className="flex flex-col md:flex-row gap-2.5">
             <div className="grow bg-[#090b10] border border-gray-850 rounded-xl px-4 py-3 text-white flex items-center justify-between font-mono text-xs select-all text-ellipsis overflow-hidden">
@@ -215,11 +215,11 @@ export default function ReferralSystem({
               }`}
             >
               {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
-              <span>{copied ? "TERSALIN" : "SALIN LINK"}</span>
+              <span>{copied ? "COPIED" : "COPY LINK"}</span>
             </button>
           </div>
-          <p className="text-[10px] text-gray-500 font-mono mt-1 px-1">
-            *Tautan merujuk ke situs utama afiliasi kami: <a href="https://tewnoxmy.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">https://tewnoxmy.vercel.app/</a>
+          <p className="text-[10px] text-gray-550 font-mono mt-1 px-1">
+            *Links redirect to our central community platform: <a href="https://tewnoxmy.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">https://tewnoxmy.vercel.app/</a>
           </p>
         </div>
       </div>
@@ -232,7 +232,7 @@ export default function ReferralSystem({
             <Users size={20} />
           </div>
           <div>
-            <p className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">Teman Terdaftar</p>
+            <p className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">Referred Friends</p>
             <p className="text-lg font-black text-white font-mono leading-none mt-1">
               {referrals.length} <span className="text-xs text-gray-500 font-normal">MINERS</span>
             </p>
@@ -244,7 +244,7 @@ export default function ReferralSystem({
             <Coins size={20} />
           </div>
           <div>
-            <p className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">Volume Fusi Teman</p>
+            <p className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">Recruit Deposit Volume</p>
             <p className="text-lg font-black text-white font-mono leading-none mt-1">
               Rp {totalDepositReferrals.toLocaleString("id-ID")}
             </p>
@@ -256,8 +256,8 @@ export default function ReferralSystem({
             <Award size={20} />
           </div>
           <div>
-            <p className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">Telah Dicairkan</p>
-            <p className="text-lg font-black text-emerald-400 font-mono leading-none mt-1">
+            <p className="text-[10px] font-mono text-gray-400 uppercase tracking-wider font-bold">Total Claimed</p>
+            <p className="text-lg font-black text-[#10b981] font-mono leading-none mt-1">
               Rp {claimedTotal.toLocaleString("id-ID")}
             </p>
           </div>
@@ -268,14 +268,14 @@ export default function ReferralSystem({
       {/* Claimable Balance Frame Panel */}
       <div className="bg-[#111624] border border-emerald-500/30 rounded-2xl p-5 md:p-6 shadow-xl flex flex-col md:flex-row items-center gap-6 justify-between text-left">
         <div className="space-y-1">
-          <span className="text-[10px] font-mono font-bold tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded inline-block">
-            SALDO KOMISI AFFILIATE SAAT INI (Uji Coba Visual)
+          <span className="text-[10px] font-mono font-bold tracking-wider text-[#10b981] bg-emerald-500/10 px-2.5 py-1 rounded inline-block">
+            CURRENT CLAIMABLE REFERRAL COMMISSION (Sandbox Demo)
           </span>
           <h3 className="text-2xl font-black font-mono text-white pt-2.5">
             Rp {claimableCommission.toLocaleString("id-ID")}
           </h3>
           <p className="text-[11px] text-gray-450 leading-relaxed font-normal">
-            Klaim komisi didapatkan otomatis setelah teman Anda sukses memverifikasi transfer isi saldo deposit! <strong className="text-amber-400 font-semibold">*Catatan: Karena simulasi pendaftaran & deposit teman ini hanya sebagai bantuan uji coba (trial), dana klaim simulasi ini tidak dimasukkan ke saldo aset Rupiah riil akun Anda.</strong>
+            Ref commissions are logged upon a referred miner's virtual test gas deposit. <strong className="text-amber-400 font-semibold">*Important: Since recruit registrations and deposits are purely virtual simulations, commission claims do not transfer to real assets.</strong>
           </p>
         </div>
 
@@ -285,7 +285,7 @@ export default function ReferralSystem({
             onClick={handleSimulateNewReferral}
             className="px-4 py-2 bg-gray-900 border border-gray-800 hover:bg-gray-850 text-gray-300 font-semibold font-mono text-[10px] uppercase rounded-xl transition shadow"
           >
-            🧪 SIMULASI DEPOSIT TEMAN
+            🧪 SIMULATE NEW RECRUIT
           </button>
           
           <button
@@ -298,7 +298,7 @@ export default function ReferralSystem({
                 : "bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-750"
             }`}
           >
-            💰 Klaim Komisi ke Saldo Rupiah
+            💰 Claim Commission Free
           </button>
         </div>
       </div>
@@ -308,52 +308,52 @@ export default function ReferralSystem({
         <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-850">
           <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
             <Share2 size={14} className="text-amber-500" />
-            <span>Riwayat Afiliasi Miners Terdaftar</span>
+            <span>Referral Affiliation Network Logs</span>
           </h4>
           <span className="text-[9px] font-mono text-gray-500 bg-[#0d0f14] px-2 py-0.5 rounded border border-gray-850">
-            KOMISI KONSTAN: 20%
+            CONSTANT RATE: 20%
           </span>
         </div>
 
         {referrals.length === 0 ? (
           <div className="py-8 text-center">
-            <p className="text-xs text-gray-500 italic">Belum ada rujukan yang melakukan pendaftaran. Bagikan link referral di atas untuk memulai!</p>
+            <p className="text-xs text-gray-500 italic">No miners referred yet. Distribute your unique link above to register your first partner!</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-mono">
               <thead>
                 <tr className="border-b border-gray-850 text-gray-400 text-[10px]">
-                  <th className="py-2.5 font-bold uppercase">ID Referral</th>
-                  <th className="py-2.5 font-bold uppercase">Nama Miner</th>
-                  <th className="py-2.5 font-bold uppercase">Tanggal Gabung</th>
-                  <th className="py-2.5 font-bold uppercase text-right">Volume Deposit</th>
-                  <th className="py-2.5 font-bold uppercase text-right text-amber-400">Komisi (20%)</th>
-                  <th className="py-2.5 font-bold uppercase text-center">Status Klaim</th>
+                  <th className="py-2.5 font-bold uppercase">Referral ID</th>
+                  <th className="py-2.5 font-bold uppercase">Miner Account</th>
+                  <th className="py-2.5 font-bold uppercase">Enlist Date</th>
+                  <th className="py-2.5 font-bold uppercase text-right">Deposit Volume</th>
+                  <th className="py-2.5 font-bold uppercase text-right text-amber-400">Commission (20%)</th>
+                  <th className="py-2.5 font-bold uppercase text-center">Claim Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-850">
                 {referrals.map((ref) => (
                   <tr key={ref.id} className="hover:bg-[#141824]/40 transition duration-150">
-                    <td className="py-3 text-gray-500 font-bold">{ref.id}</td>
-                    <td className="py-3 text-white font-black truncate max-w-[120px]">{ref.username}</td>
-                    <td className="py-3 text-gray-400 text-[11px]">{ref.registeredAt}</td>
-                    <td className="py-3 text-right text-gray-300 font-bold">
-                      Rp {ref.depositAmount.toLocaleString("id-ID")}
-                    </td>
-                    <td className="py-3 text-right text-amber-400 font-extrabold">
-                      Rp {ref.commissionEarned.toLocaleString("id-ID")}
-                    </td>
-                    <td className="py-3 text-center">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                        ref.status === "active"
-                          ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
-                          : "bg-green-500/10 text-green-500 border border-green-500/20"
-                      }`}>
-                        {ref.status === "active" ? "BELUM DEPOSIT/KLAIM" : "SUDAH DIKLAIM"}
-                      </span>
-                    </td>
-                  </tr>
+                     <td className="py-3 text-gray-500 font-bold">{ref.id}</td>
+                     <td className="py-3 text-white font-black truncate max-w-[120px]">{ref.username}</td>
+                     <td className="py-3 text-gray-400 text-[11px]">{ref.registeredAt}</td>
+                     <td className="py-3 text-right text-gray-300 font-bold">
+                       Rp {ref.depositAmount.toLocaleString("id-ID")}
+                     </td>
+                     <td className="py-3 text-right text-amber-400 font-extrabold">
+                       Rp {ref.commissionEarned.toLocaleString("id-ID")}
+                     </td>
+                     <td className="py-3 text-center">
+                       <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                         ref.status === "active"
+                           ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
+                           : "bg-green-500/10 text-green-500 border border-green-500/20"
+                       }`}>
+                         {ref.status === "active" ? "PENDING DEPOSIT" : "CLAIMED"}
+                       </span>
+                     </td>
+                   </tr>
                 ))}
               </tbody>
             </table>

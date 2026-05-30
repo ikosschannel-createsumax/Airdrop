@@ -105,8 +105,8 @@ export default function AdminPanel({
         playUpgradeSound();
         triggerNotification(
           status === 'completed'
-            ? `✅ Deposit ${requestId} berhasil disetujui! Saldo ditambahkan.`
-            : `❌ Deposit ${requestId} berhasil ditolak.`
+            ? `✅ Deposit request ${requestId} approved! Saldo updated.`
+            : `❌ Deposit request ${requestId} rejected.`
         );
         // Reload requests
         loadDepositRequests();
@@ -135,11 +135,11 @@ export default function AdminPanel({
             }
           });
       } else {
-        triggerNotification("⚠️ Gagal memproses permintaan: mungkin sudah disetujui/ditolak.");
+        triggerNotification("⚠️ Failed to process request: it may have already been approved or rejected.");
       }
     } catch (err) {
       console.error(err);
-      triggerNotification("❌ Terjadi kesalahan saat memproses permintaan deposit.");
+      triggerNotification("❌ Error processing deposit request.");
     }
   };
 
@@ -178,7 +178,7 @@ export default function AdminPanel({
 
   const handleUpdatePassword = (email: string, newPass: string) => {
     if (!newPass.trim()) {
-      triggerNotification("⚠️ Sandi baru tidak boleh kosong!");
+      triggerNotification("⚠️ New password cannot be empty!");
       return;
     }
     
@@ -204,15 +204,15 @@ export default function AdminPanel({
     });
 
     playUpgradeSound();
-    triggerNotification(`🔐 Sandi akun ${email} berhasil diubah di database!`);
+    triggerNotification(`🔐 Account password for ${email} successfully changed in database!`);
   };
 
   const handleDeleteUser = (email: string) => {
     if (email.toLowerCase() === "demo@ldrcoin.com") {
-      triggerNotification("⚠️ Akun demo tidak dapat dihapus!");
+      triggerNotification("⚠️ Demo account cannot be deleted!");
       return;
     }
-    if (!window.confirm(`Apakah Anda yakin ingin menghapus pengguna/miner ${email}?`)) {
+    if (!window.confirm(`Are you sure you want to delete miner ${email}?`)) {
       return;
     }
 
@@ -226,12 +226,12 @@ export default function AdminPanel({
     });
 
     playUpgradeSound();
-    triggerNotification(`❌ Akun ${email} telah berhasil dihapus dari database!`);
+    triggerNotification(`❌ Account ${email} deleted successfully from database!`);
   };
 
   const handleSaveNotification = (field: string) => {
     playUpgradeSound();
-    triggerNotification(`💾 Pengaturan ${field} berhasil disimpan ke penyimpanan lokal!`);
+    triggerNotification(`💾 Settings for ${field} saved successfully to local storage!`);
   };
 
   return (
@@ -257,17 +257,17 @@ export default function AdminPanel({
                 </span>
               </div>
               <h1 className="text-xl font-extrabold text-white tracking-tight mt-2 flex items-center gap-1.5 font-sans">
-                CORE PANEL ADMIN & KONTROL REAKTOR
+                CORE ADMIN PANEL & REACTOR CONTROL
               </h1>
               <p className="text-xs text-gray-400 leading-relaxed mt-1 max-w-xl">
-                Konfigurasi pusat gerbang pembayaran, integrasi teks EMVCO QRIS Dana Merchant, dan no. rekening penampung donasi/deposit otomatis secara real-time.
+                Centralized gateway configuration, DANA Merchant QRIS EMVCO text payload integration, and automated real-time collection account directory.
               </p>
             </div>
           </div>
           
           <div className="bg-[#090b11] border border-gray-850 p-3 rounded-2xl flex items-center gap-2.5 shrink-0 self-start md:self-auto font-mono">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">STATUS ADMIN: AKTIF</span>
+            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">ADMIN STATUS: ACTIVE</span>
           </div>
         </div>
       </div>
@@ -280,14 +280,14 @@ export default function AdminPanel({
           <div className="flex items-center gap-2.5 border-b border-gray-850 pb-3">
             <Settings size={18} className="text-amber-400 font-bold" />
             <h2 className="text-sm font-black font-mono text-white tracking-widest uppercase">
-              KONFIGURASI PEMBAYARAN & REKENING
+              PAYMENT CONFIGURATION & RECIPIENTS
             </h2>
           </div>
 
-          {/* Subtitle: METODE QRIS UTAMA */}
+          {/* Subtitle: PRIMARY QRIS METHOD */}
           <div className="space-y-2">
             <span className="block text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400">
-              METODE QRIS UTAMA
+              PRIMARY QRIS METHOD
             </span>
             <div className="grid grid-cols-2 gap-2 bg-[#090b11] p-1 rounded-xl border border-gray-850">
               <button
@@ -302,7 +302,7 @@ export default function AdminPanel({
                     : "text-gray-500 hover:text-gray-300"
                 }`}
               >
-                Teks Payload (Dynamic Code)
+                Payload Text (Dynamic Code)
               </button>
               <button
                 type="button"
@@ -316,7 +316,7 @@ export default function AdminPanel({
                     : "text-gray-500 hover:text-gray-300"
                 }`}
               >
-                Link Gambar QRIS Statis
+                Static QRIS Image Link
               </button>
             </div>
           </div>
@@ -324,7 +324,7 @@ export default function AdminPanel({
           {/* STRING QRIS PAYLOAD */}
           <div className="space-y-2">
             <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400">
-              STRING QRIS PAYLOAD (TEKS EMVCO DANA)
+              STRING QRIS PAYLOAD (EMVCO DANA TEXT)
             </label>
             <div className="relative">
               <textarea
@@ -335,15 +335,15 @@ export default function AdminPanel({
                 placeholder="0002010102124049..."
               />
               <button
-                onClick={() => handleSaveNotification("Payload QRIS")}
+                onClick={() => handleSaveNotification("QRIS Payload")}
                 className="absolute bottom-3 right-3 p-2 bg-gray-900 hover:bg-amber-500 hover:text-black border border-gray-800 rounded-lg text-gray-400 transition"
-                title="Simpan payload QRIS"
+                title="Save QRIS payload"
               >
                 <Save size={14} />
               </button>
             </div>
             <p className="text-[9.5px] text-gray-500 leading-snug">
-              Masukkan nomor kode QRIS Merchant Anda (string EMVCO standar). Pelanggan akan melihat QR Code terbuat otomatis dari string teks ini saat deposit.
+              Insert your Merchant QRIS code characters (standard EMVCO string). Recruits will see a QR Code automatically generated from this text upon initiating a deposit.
             </p>
           </div>
 
@@ -351,7 +351,7 @@ export default function AdminPanel({
           <div className="space-y-4 pt-1">
             <div className="space-y-1.5">
               <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400">
-                NO. DANA ADMIN
+                ADMIN DANA NUMBER
               </label>
               <div className="relative rounded-lg shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
@@ -376,7 +376,7 @@ export default function AdminPanel({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400">
-                  NO. REKENING BCA
+                  BCA BANK ACCOUNT
                 </label>
                 <div className="relative rounded-lg shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
@@ -400,7 +400,7 @@ export default function AdminPanel({
 
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400">
-                  NO. REKENING MANDIRI
+                  MANDIRI BANK ACCOUNT
                 </label>
                 <div className="relative rounded-lg shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
@@ -434,7 +434,7 @@ export default function AdminPanel({
             <div className="flex items-center gap-2.5 border-b border-gray-850 pb-3">
               <QrCode size={18} className="text-amber-400" />
               <h2 className="text-sm font-black font-mono text-white tracking-widest uppercase">
-                PRATINJAU QR DEPOSIT
+                DEPOSIT QR CODE PREVIEW
               </h2>
             </div>
 
@@ -450,17 +450,17 @@ export default function AdminPanel({
                 ) : (
                   <div className="w-40 h-40 bg-zinc-100 flex flex-col items-center justify-center text-center text-zinc-800 p-2 rounded-lg">
                     <span className="text-2xl font-black">📷 STATIC</span>
-                    <p className="text-[10px] text-zinc-500 mt-1">Image Link statis / manual</p>
+                    <p className="text-[10px] text-zinc-500 mt-1">Manual/static image link</p>
                   </div>
                 )}
               </div>
               
               <div className="space-y-1">
                 <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-500">
-                  {adminQrisMethod === 'dynamic' ? '⚡ KODE PAYLOAD EMVCO LIVE' : '🚫 GAMBAR STATIC ACTIVE'}
+                  {adminQrisMethod === 'dynamic' ? '⚡ LIVE EMVCO PAYLOAD CODE' : '🚫 STATIC IMAGE ACTIVE'}
                 </span>
-                <p className="text-[9.5px] text-gray-400 font-mono leading-relaxed px-2">
-                  Ini adalah simulasi QR Code yang dipajang pada tab <strong className="text-white">PAYOUT & CAIR</strong> saat pengguna/pengonfirmasi melakukan deposit.
+                <p className="text-[9.5px] text-gray-450 font-mono leading-relaxed px-2">
+                  This simulated QR code appears on the <strong className="text-white">PAYOUT & WITHDRAW</strong> tab when users choose QRIS during gas/RP deposit requests.
                 </p>
               </div>
             </div>
@@ -471,19 +471,19 @@ export default function AdminPanel({
             <div className="flex items-center gap-2.5 border-b border-gray-850 pb-3">
               <Grid size={17} className="text-amber-400" />
               <h2 className="text-sm font-black font-mono text-white tracking-widest uppercase">
-                TIPS & INFORMASI ADMIN
+                TIPS & ADMINISTRATION INFO
               </h2>
             </div>
 
             <div className="text-[11px] text-gray-400 leading-relaxed space-y-3 font-mono">
               <p>
-                💡 <strong className="text-white">Bagaimana cara kerja transfer instan?</strong> Pengguna game yang mendaftar akan menyalin nomor rekening Anda atau memindai QRIS Anda ketika kehabisan gas Rp 80/drop.
+                💡 <strong className="text-white">How does transaction confirmation work?</strong> Recruits enlisting in the game copy designated recipient details or scan the custom QRIS when topping up.
               </p>
               <p>
-                ⚡ <strong className="text-white">Status Realtime:</strong> Seluruh konfigurasi di halaman admin disimpan secara lokal ke dalam objek state global demi kecepatan sinkronisasi maksimum.
+                ⚡ <strong className="text-white">Real-Time Status:</strong> All gateway parameters are updated instantly in the global reactive context to guarantee immediate client rendering.
               </p>
               <p className="p-2.5 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded-xl leading-normal text-[10px]">
-                🚨 <strong>Catatan Keamanan:</strong> Jangan membagikan payload atau informasi credential sensitif di chat global jika Anda menggunakannya pada environment produksi.
+                🚨 <strong>Security Reminder:</strong> Never share production bank credentials or live QRIS payloads with unvetted players under sandbox settings.
               </p>
             </div>
           </div>
@@ -503,14 +503,14 @@ export default function AdminPanel({
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-sm font-black font-mono text-white tracking-widest uppercase">
-                    PERMINTAAN DEPOSIT MEMBER
+                    MEMBER DEPOSIT REQUESTS
                   </h2>
                   <span className="text-[10px] font-mono font-black bg-red-500/15 text-red-500 border border-red-500/25 px-1.5 py-0.5 rounded uppercase">
-                    {depositRequests.filter(r => r.status === 'pending').length} MENUNGGU
+                    {depositRequests.filter(r => r.status === 'pending').length} PENDING
                   </span>
                 </div>
                 <p className="text-[11px] text-gray-400 mt-0.5 font-mono">
-                  Daftar deposit manual yang diproses (Sistem/CS) menunggu persetujuan admin.
+                  Manual deposit slips submitted by miners awaiting administrator review and validation.
                 </p>
               </div>
             </div>
@@ -531,7 +531,7 @@ export default function AdminPanel({
           <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
             {depositRequests.filter(r => r.status === 'pending').length === 0 ? (
               <div className="bg-[#090b11] rounded-xl p-8 text-center text-gray-500 border border-gray-850 text-xs font-mono">
-                ☕ Semua bersih! Tidak ada permintaan deposit member yang menunggu persetujuan.
+                ☕ All clear! No member deposit requests are currently pending.
               </div>
             ) : (
               depositRequests
@@ -561,10 +561,10 @@ export default function AdminPanel({
                           {req.email}
                         </span>
                         <div className="flex items-center gap-1 mt-1 text-[11px] font-mono text-gray-500">
-                          <span>Nominal:</span>
+                          <span>Volume:</span>
                           <span className="text-emerald-400 font-bold">Rp {req.amount.toLocaleString("id-ID")}</span>
                           <span>•</span>
-                          <span>Waktu: {new Date(req.timestamp).toLocaleString("id-ID")}</span>
+                          <span>Time: {new Date(req.timestamp).toLocaleString("id-ID")}</span>
                         </div>
                       </div>
                     </div>
@@ -575,14 +575,14 @@ export default function AdminPanel({
                         className="flex items-center gap-1.5 py-1.5 px-3.5 bg-emerald-500 hover:bg-emerald-600 text-black font-black uppercase rounded-lg text-[10px] font-mono transition"
                       >
                         <Check size={12} />
-                        <span>SETUJUI</span>
+                        <span>APPROVE</span>
                       </button>
                       <button
                         onClick={() => handleProcessDeposit(req.id, req.email, 'failed')}
                         className="flex items-center gap-1.5 py-1.5 px-3.5 bg-red-950/40 text-red-400 border border-red-900/40 hover:bg-red-900 hover:text-white rounded-lg text-[10px] font-mono transition"
                       >
                         <X size={12} />
-                        <span>TOLAK</span>
+                        <span>REJECT</span>
                       </button>
                     </div>
                   </div>
@@ -598,10 +598,10 @@ export default function AdminPanel({
               <Users size={20} className="text-amber-400" />
               <div>
                 <h2 className="text-sm font-black font-mono text-white tracking-widest uppercase">
-                  KELOLA USER & RESET PASSWORD
+                  MANAGE ACCOUNTS & RESET PASSWORDS
                 </h2>
                 <p className="text-[11px] text-gray-400 mt-0.5 font-mono">
-                  Daftar akun terdaftar di reaktor LDR Coin ({registeredUsers.length} Users)
+                  Registered profiles in the LDR Coin Reactor pool ({registeredUsers.length} Users)
                 </p>
               </div>
             </div>
@@ -613,7 +613,7 @@ export default function AdminPanel({
               </span>
               <input
                 type="text"
-                placeholder="Cari email user..."
+                placeholder="Search email account..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-[#090b11] border border-gray-800 rounded-lg py-1.5 pl-9 pr-3 text-white text-xs font-mono focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-500/15"
@@ -624,8 +624,8 @@ export default function AdminPanel({
           {/* Users Table / Grid list */}
           <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
             {registeredUsers.filter(u => !searchQuery || u.email.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
-              <div className="bg-[#090b11] rounded-xl p-8 text-center text-gray-500 border border-gray-850 text-xs font-mono">
-                Tidak ada user terdaftar yang cocok dengan pencarian Anda.
+              <div className="bg-[#090b11] rounded-xl p-8 text-center text-gray-550 border border-gray-850 text-xs font-mono">
+                No registered users match your search query.
               </div>
             ) : (
               registeredUsers
@@ -677,7 +677,7 @@ export default function AdminPanel({
                         {/* VIEW & EDIT PASSWORD CONTROLS */}
                         <div className="bg-[#111420] border border-gray-800 p-2.5 rounded-lg flex items-center justify-between gap-3 text-xs font-mono min-w-[210px]">
                           <div className="text-[11px]">
-                            <span className="text-[8px] text-gray-500 uppercase block leading-none mb-1">PASSWORD SAAT INI:</span>
+                            <span className="text-[8px] text-gray-500 uppercase block leading-none mb-1">CURRENT PASSWORD:</span>
                             <span className="text-amber-400 font-bold">
                               {isVisible ? user.passwordHash : "••••••••"}
                             </span>
@@ -690,7 +690,7 @@ export default function AdminPanel({
                               setShowPasswordMap(prev => ({ ...prev, [user.email]: !isVisible }));
                             }}
                             className="p-1 px-2 bg-gray-900 hover:bg-gray-850 hover:text-white border border-gray-800 text-gray-400 rounded transition flex items-center gap-1 text-[9px]"
-                            title={isVisible ? "Sembunyikan password" : "Tampilkan password"}
+                            title={isVisible ? "Hide password" : "Show password"}
                           >
                             {isVisible ? <EyeOff size={11} /> : <Eye size={11} />}
                             <span>{isVisible ? "HIDE" : "SHOW"}</span>
@@ -702,7 +702,7 @@ export default function AdminPanel({
                           <div className="relative">
                             <input
                               type="text"
-                              placeholder="Ketik password baru..."
+                              placeholder="Type new password..."
                               value={newPasswords[user.email] || ""}
                               onChange={(e) => setNewPasswords(prev => ({ ...prev, [user.email]: e.target.value }))}
                               className="w-full sm:w-44 bg-gray-950 border border-gray-850 rounded-lg py-1.5 px-2.5 text-[11px] text-white font-mono placeholder-gray-600 focus:outline-none focus:border-amber-400"

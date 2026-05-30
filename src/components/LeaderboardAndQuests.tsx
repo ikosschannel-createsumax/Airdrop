@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from "react";
 import { Achievement, MinerProfile } from "../types";
 import { playClickSound, playUpgradeSound } from "../utils/audio";
-import { Award, Shield, Search, CheckCircle, Gift, Bomb, Zap, TrendingUp, Sparkles } from "lucide-react";
+import { Award, CheckCircle, Gift, Bomb, Zap, Sparkles, Clock, Globe } from "lucide-react";
 
 interface LeaderboardAndQuestsProps {
   profile: MinerProfile;
@@ -69,7 +69,7 @@ export default function LeaderboardAndQuests({
     const key = profile.minerTag ? `ldr_social_channel_claimed_${profile.minerTag}` : "ldr_social_channel_claimed";
     localStorage.setItem(key, "true");
     if (triggerNotification) {
-      triggerNotification("🎉 Sukses mengklaim hadiah Bergabung Sosial Media sebesar Rp 5.000!");
+      triggerNotification("🎉 Successfully claimed Social Media Join reward of Rp 5,000!");
     }
   };
 
@@ -81,7 +81,7 @@ export default function LeaderboardAndQuests({
     const key = profile.minerTag ? `ldr_social_group_claimed_${profile.minerTag}` : "ldr_social_group_claimed";
     localStorage.setItem(key, "true");
     if (triggerNotification) {
-      triggerNotification("🎉 Sukses mengklaim hadiah Membangun Jaringan sebesar Rp 1.000!");
+      triggerNotification("🎉 Successfully claimed Social Media Network reward of Rp 1,000!");
     }
   };
 
@@ -119,13 +119,10 @@ export default function LeaderboardAndQuests({
     if (lastUpdateStr) {
       const lastUpdate = parseInt(lastUpdateStr, 10);
       const elapsedMs = nowTime - lastUpdate;
-      // Define a "day" as elapsed fraction or hours. 
-      // Add realistic offline progression based on days passed (min 0 to prevent issues)
       const elapsedDays = Math.max(0, elapsedMs / (24 * 60 * 60 * 1000));
       
       if (elapsedDays > 0.01) { // Apply progression even if user was away for more than ~15 mins
         currentComps = currentComps.map((comp) => {
-          // Proportionate mock values per day depending on role/rank tier
           const multiplier = comp.rank === 1 ? 2.0 : comp.rank <= 3 ? 1.5 : 1.0;
           const scorePerDay = (Math.floor(Math.random() * 800) + 400) * multiplier;
           const coinsPerDay = (Math.floor(Math.random() * 50) + 20) * multiplier;
@@ -146,16 +143,14 @@ export default function LeaderboardAndQuests({
     localStorage.setItem("ldr_leaderboard_competitors", JSON.stringify(currentComps));
     localStorage.setItem("ldr_leaderboard_last_update", nowTime.toString());
 
-    // Dynamic timer ticker to increase competitors score simulating active online miners
+    // Dynamic timer ticker to simulate active players
     const interval = setInterval(() => {
       setCompetitors((prev) => {
         const updated = prev.map((comp) => {
-          // 45% chance of competitor gaining points/coins
           if (Math.random() < 0.45) {
             const addedScore = Math.floor(Math.random() * 120) + 20;
             const addedCoin = Math.floor(Math.random() * 8) + 2;
 
-            // Trigger visual gain toast for this specific competitor tag
             setRecentGains((prevGains) => ({
               ...prevGains,
               [comp.minerTag]: {
@@ -178,9 +173,8 @@ export default function LeaderboardAndQuests({
         localStorage.setItem("ldr_leaderboard_last_update", Date.now().toString());
         return updated;
       });
-    }, 5000); // Trigger every 5 seconds for visual and lively updating experience!
+    }, 5000);
 
-    // Clear expired gains
     const cleanInterval = setInterval(() => {
       setRecentGains((prev) => {
         const next: Record<string, any> = {};
@@ -203,11 +197,10 @@ export default function LeaderboardAndQuests({
     };
   }, []);
 
-  // Merge the user profile into the ranks list and sort them dynamically!
   const getLeaderboardRanks = (): Competitor[] => {
     const userCompetitor: Competitor = {
-      rank: 0, // calculated later
-      username: `${profile.username} (Anda)`,
+      rank: 0,
+      username: `${profile.username} (You)`,
       minerTag: profile.minerTag,
       avatar: profile.avatar,
       role: profile.role,
@@ -216,10 +209,8 @@ export default function LeaderboardAndQuests({
     };
 
     const combined = [...competitors, userCompetitor];
-    // Sort descending by highest score
     combined.sort((a, b) => b.score - a.score);
 
-    // Re-assign ranks
     return combined.map((item, index) => ({
       ...item,
       rank: index + 1
@@ -248,7 +239,7 @@ export default function LeaderboardAndQuests({
               : "border-transparent text-gray-400 hover:text-gray-200"
           }`}
         >
-          🏆 PAPAN PERINGKAT LIVE
+          🏆 LIVE LEADERBOARD
         </button>
         <button
           onClick={() => { playClickSound(); setActiveSubTab('quests'); }}
@@ -258,7 +249,7 @@ export default function LeaderboardAndQuests({
               : "border-transparent text-gray-400 hover:text-gray-200"
           }`}
         >
-          🎁 KLAIM PENCAPAIAN
+          🎁 DAILY QUESTS & TASKS
         </button>
         <button
           onClick={() => { playClickSound(); setActiveSubTab('shop'); }}
@@ -268,7 +259,7 @@ export default function LeaderboardAndQuests({
               : "border-transparent text-gray-400 hover:text-gray-200"
           }`}
         >
-          🛒 TOKO PERALATAN DARURAT
+          🛒 EMERGENCY ITEM SHOP
         </button>
       </div>
 
@@ -283,9 +274,9 @@ export default function LeaderboardAndQuests({
                 <Award size={20} />
               </div>
               <div className="text-left">
-                <h4 className="text-xs font-mono text-gray-400 uppercase tracking-wide">STATUS PERINGKAT INSTAN ANDA:</h4>
+                <h4 className="text-xs font-mono text-gray-400 uppercase tracking-wide">YOUR INSTANT STANDINGS STATUS:</h4>
                 <div className="text-sm font-bold text-white mt-0.5">
-                  Berada di Peringkat <span className="text-amber-400">#{userRankPosition} global</span> dengan Skor Tertinggi {profile.highScore.toLocaleString()} Pts!
+                  Currently ranked <span className="text-amber-400">#{userRankPosition} global</span> with a high score of {profile.highScore.toLocaleString()} Pts!
                 </div>
               </div>
             </div>
@@ -297,10 +288,10 @@ export default function LeaderboardAndQuests({
               <thead>
                 <tr className="border-b border-gray-800 text-[10px] font-mono text-gray-500 uppercase">
                   <th className="py-2.5 px-3">Rank</th>
-                  <th className="py-2.5 px-3">Penambang</th>
-                  <th className="py-2.5 px-3">Spesialisasi</th>
-                  <th className="py-2.5 px-3 text-right">Skor Tertinggi</th>
-                  <th className="py-2.5 px-3 text-right">Saldo Perkiraan</th>
+                  <th className="py-2.5 px-3">Miner Station</th>
+                  <th className="py-2.5 px-3">Specialization</th>
+                  <th className="py-2.5 px-3 text-right">High Score</th>
+                  <th className="py-2.5 px-3 text-right">LDR Balance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-850">
@@ -374,132 +365,39 @@ export default function LeaderboardAndQuests({
         </div>
       )}
 
-      {/* 2. Quests / Achievements claim panel */}
+      {/* 2. Quests / Achievements claim panel (Merged Social Media + Achievements) */}
       {activeSubTab === 'quests' && (
         <div className="space-y-4">
           <div className="text-left mb-2">
-            <h4 className="text-sm font-bold text-white">Quest Harian & Prestasi Tambang</h4>
-            <p className="text-xs text-gray-400">Penuhi sasaran kuantitas mineral tambang di bawah ini untuk mencairkan hadiah subsidi koin LDR tambahan dari markas pusat.</p>
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Daily Quests & Mining Achievements</h4>
+            <p className="text-xs text-gray-400">Complete the specific targets below to claim extra LDR Coin subventions or instant Rupiah bonuses directly to your mining vault.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {achievements.map((ach) => {
-              // Calculate percent progress
-              const progressPct = Math.min(100, Math.floor((ach.current / ach.target) * 100));
-              const isFinished = ach.current >= ach.target;
-
-              return (
-                <div 
-                  key={ach.id}
-                  className={`p-4 rounded-xl border flex flex-col justify-between ${
-                    ach.completed 
-                      ? "border-gray-800 bg-[#0d0f14]' bg-opacity-40" 
-                      : isFinished 
-                        ? "border-green-500 bg-green-500/5 animate-pulse" 
-                        : "border-gray-800 bg-[#161a29]"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3 text-left">
-                    <div className="min-w-0">
-                      <h4 className={`text-sm font-bold ${ach.completed ? "text-gray-500 line-through" : "text-white"}`}>
-                        {ach.title}
-                      </h4>
-                      <p className="text-xs text-gray-450 mt-1 leading-snug">
-                        {ach.description}
-                      </p>
-                    </div>
-                    {ach.completed ? (
-                      <span className="p-1 rounded-full bg-gray-900 border border-gray-850 text-gray-600 shrink-0">
-                        <CheckCircle size={16} />
-                      </span>
-                    ) : (
-                      <span className="p-1.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 shrink-0">
-                        <Gift size={16} />
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Progress bar info */}
-                  <div className="mt-4">
-                    <div className="flex justify-between items-center text-[10px] font-mono text-gray-500 mb-1">
-                      <span>Progres target: {ach.current.toLocaleString()}/{ach.target.toLocaleString()}</span>
-                      <span>{progressPct}%</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-gray-900 rounded-full overflow-hidden border border-gray-800">
-                      <div 
-                        className={`h-full rounded-full transition-all duration-300 ${
-                          ach.completed ? "bg-gray-700" : isFinished ? "bg-green-500" : "bg-amber-500"
-                        }`}
-                        style={{ width: `${progressPct}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Claim Button */}
-                  <div className="mt-4 flex justify-between items-center pt-2 border-t border-gray-800/50">
-                    <span className="text-[10px] font-mono font-bold text-green-400">
-                      HADIAH: 🪙 +{ach.reward} LDR
-                    </span>
-
-                    {ach.completed ? (
-                      <button 
-                        disabled 
-                        className="py-1 px-3 rounded bg-gray-900 border border-gray-850 text-gray-600 text-xs font-mono cursor-not-allowed font-medium"
-                      >
-                        DIKLAIM
-                      </button>
-                    ) : isFinished ? (
-                      <button 
-                        onClick={() => { playUpgradeSound(); onClaimAchievement(ach.id, ach.reward); }}
-                        className="py-1 px-3 rounded bg-green-500 text-[#0d0f14] hover:brightness-105 active:scale-95 text-xs font-mono font-bold transition shadow"
-                      >
-                        KLAIM SKG!
-                      </button>
-                    ) : (
-                      <button 
-                        disabled 
-                        className="py-1 px-3 rounded bg-gray-800 text-gray-500 text-xs font-mono cursor-not-allowed border border-gray-750 font-medium"
-                      >
-                        BELUM SELESAI
-                      </button>
-                    )}
-                  </div>
-
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Section: Misi Sosial Media (Hadiah Langsung Rupiah) */}
-          <div className="text-left mt-8 mb-4 pt-5 border-t border-gray-800">
-            <h4 className="text-sm font-black text-amber-400 uppercase tracking-wider flex items-center gap-2">
-              <Sparkles size={16} className="text-amber-400 shrink-0" />
-              <span>🎁 MISI SOSIAL MEDIA (HADIAH SALDO RUPIAH)</span>
-            </h4>
-            <p className="text-xs text-gray-400 mt-1">Gabung dengan jaringan resmi kami untuk mengklaim modal bonus Rupiah instan yang dikirim langsung ke saldo akun penambangan Anda.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-            {/* Task 1 Card */}
+            
+            {/* Ach 1: Social Media Join Task (Directly merged here) */}
             <div className={`p-4 rounded-xl border flex flex-col justify-between transition ${
-              tgChannelClaimed 
-                ? "border-gray-850 bg-gray-950/25 opacity-75" 
+              tgChannelClaimed
+                ? "border-gray-850 bg-gray-950/25 opacity-70"
                 : "border-amber-500/20 bg-[#161a29]"
             }`}>
               <div className="flex items-start justify-between gap-3 text-left">
                 <div className="min-w-0">
-                  <h4 className={`text-sm font-bold ${tgChannelClaimed ? "text-gray-500 line-through" : "text-white"}`}>
-                    Bergabunglah bersama kami social media
+                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                    Social Task
+                  </span>
+                  <h4 className={`text-sm font-bold mt-2 ${tgChannelClaimed ? "text-gray-500 line-through" : "text-white"}`}>
+                    Join Official Telegram Channel
                   </h4>
                   <p className="text-xs text-gray-400 mt-1.5 leading-snug">
-                    Buka jaringan interaksi Telegram dan ikuti channel info penambangan Galaxxe Tambang untuk info terkini.
+                    Subscribe to the official Galaxxe Mining core network to receive real-time news, promos, and system updates.
                   </p>
-                  <p className="text-[10px] text-gray-500 font-mono mt-2.5 break-all">
-                    Link: <a href="https://t.me/galaxxetambang" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline hover:text-blue-300">https://t.me/galaxxetambang</a>
+                  <p className="text-[10px] text-gray-500 font-mono mt-2.5 truncate break-all">
+                    Link: <a href="https://t.me/galaxxetambang" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline hover:text-blue-300">t.me/galaxxetambang</a>
                   </p>
                 </div>
                 {tgChannelClaimed ? (
-                  <span className="p-1 rounded-full bg-gray-900 border border-gray-850 text-emerald-500 shrink-0">
+                  <span className="p-1 rounded-full bg-gray-900 border border-gray-880 text-emerald-500 shrink-0">
                     <CheckCircle size={16} />
                   </span>
                 ) : (
@@ -510,8 +408,8 @@ export default function LeaderboardAndQuests({
               </div>
 
               <div className="mt-4 flex justify-between items-center pt-2.5 border-t border-gray-800/50">
-                <span className="text-[10px] font-mono font-bold text-emerald-400">
-                  HADIAH: 💸 Rp 5.000 (Rupiah)
+                <span className="text-[10px] font-mono font-bold text-semibold text-emerald-400 uppercase">
+                  REWARD: 💸 Rp 5,000 (Rupiah)
                 </span>
 
                 <div className="flex gap-2 shrink-0">
@@ -526,59 +424,62 @@ export default function LeaderboardAndQuests({
                         const key = profile.minerTag ? `ldr_social_channel_clicked_${profile.minerTag}` : "ldr_social_channel_clicked";
                         localStorage.setItem(key, "true");
                       }}
-                      className="py-1 px-3 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-mono font-bold transition shadow text-center flex items-center"
+                      className="py-1 px-2.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-mono font-bold transition shadow leading-none flex items-center justify-center text-center"
                     >
-                      KUNJUNGI JARINGAN
+                      VISIT LINK
                     </a>
                   )}
 
                   {tgChannelClaimed ? (
                     <button 
                       disabled 
-                      className="py-1 px-3 rounded bg-gray-900 border border-gray-850 text-gray-600 text-xs font-mono cursor-not-allowed font-medium"
+                      className="py-1 px-2.5 rounded bg-gray-900 border border-gray-850 text-gray-600 text-[10px] font-mono cursor-not-allowed font-medium"
                     >
-                      DIKLAIM
+                      CLAIMED
                     </button>
                   ) : tgChannelClicked ? (
                     <button 
                       onClick={handleClaimChannelReward}
-                      className="py-1 px-3 rounded bg-green-500 text-black hover:bg-green-400 active:scale-95 text-xs font-mono font-black transition shadow animate-pulse"
+                      className="py-1 px-2.5 rounded bg-green-500 text-black hover:bg-green-400 active:scale-95 text-[10px] font-mono font-black transition shadow animate-pulse"
                     >
-                      KLAIM RP 5.000!
+                      CLAIM NOW!
                     </button>
                   ) : (
                     <button 
                       disabled 
-                      className="py-1 px-3 rounded bg-gray-800 text-gray-500 text-xs font-mono cursor-not-allowed border border-gray-750 font-medium"
-                      title="Kunjungi Group Tele terlebih dahulu"
+                      className="py-1 px-2.5 rounded bg-gray-800 text-gray-500 text-[10px] font-mono cursor-not-allowed border border-gray-750 font-medium"
+                      title="Please visit the Telegram channel first"
                     >
-                      BELUM DIBUKA
+                      LOCKED
                     </button>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Task 2 Card */}
+            {/* Ach 2: Social Media Group Network Task (Directly merged here) */}
             <div className={`p-4 rounded-xl border flex flex-col justify-between transition ${
-              tgGroupClaimed 
-                ? "border-gray-850 bg-gray-950/25 opacity-75" 
+              tgGroupClaimed
+                ? "border-gray-850 bg-gray-950/25 opacity-70"
                 : "border-amber-500/20 bg-[#161a29]"
             }`}>
               <div className="flex items-start justify-between gap-3 text-left">
                 <div className="min-w-0">
-                  <h4 className={`text-sm font-bold ${tgGroupClaimed ? "text-gray-500 line-through" : "text-white"}`}>
-                    Bantu kami membangun jaringan social media
+                  <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                    Social Task
+                  </span>
+                  <h4 className={`text-sm font-bold mt-2 ${tgGroupClaimed ? "text-gray-500 line-through" : "text-white"}`}>
+                    Interact in Community Group
                   </h4>
                   <p className="text-xs text-gray-400 mt-1.5 leading-snug">
-                    Bantu bagikan dan join jaringan komunitas kedua kami demi peningkatan kohesi stabilitas koneksi koin.
+                    Join the secondary global community group chat to discuss mining strategies and coordinate with co-miners.
                   </p>
-                  <p className="text-[10px] text-gray-500 font-mono mt-2.5 break-all">
-                    Link: <a href="https://t.me/+q55cAm07WI1lZjk1" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline hover:text-blue-300">https://t.me/+q55cAm07WI1lZjk1</a>
+                  <p className="text-[10px] text-gray-500 font-mono mt-2.5 truncate break-all">
+                    Link: <a href="https://t.me/+q55cAm07WI1lZjk1" target="_blank" rel="noopener noreferrer" className="text-blue-400 underline hover:text-blue-300">t.me/galaxxetambang_group</a>
                   </p>
                 </div>
                 {tgGroupClaimed ? (
-                  <span className="p-1 rounded-full bg-gray-900 border border-gray-850 text-emerald-500 shrink-0">
+                  <span className="p-1 rounded-full bg-gray-900 border border-gray-880 text-emerald-500 shrink-0">
                     <CheckCircle size={16} />
                   </span>
                 ) : (
@@ -589,8 +490,8 @@ export default function LeaderboardAndQuests({
               </div>
 
               <div className="mt-4 flex justify-between items-center pt-2.5 border-t border-gray-800/50">
-                <span className="text-[10px] font-mono font-bold text-emerald-400">
-                  HADIAH: 💸 Rp 1.000 (Rupiah)
+                <span className="text-[10px] font-mono font-bold text-semibold text-emerald-400 uppercase">
+                  REWARD: 💸 Rp 1,000 (Rupiah)
                 </span>
 
                 <div className="flex gap-2 shrink-0">
@@ -605,38 +506,125 @@ export default function LeaderboardAndQuests({
                         const key = profile.minerTag ? `ldr_social_group_clicked_${profile.minerTag}` : "ldr_social_group_clicked";
                         localStorage.setItem(key, "true");
                       }}
-                      className="py-1 px-3 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-mono font-bold transition shadow text-center flex items-center"
+                      className="py-1 px-2.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-mono font-bold transition shadow leading-none flex items-center justify-center text-center"
                     >
-                      KUNJUNGI JARINGAN
+                      VISIT LINK
                     </a>
                   )}
 
                   {tgGroupClaimed ? (
                     <button 
                       disabled 
-                      className="py-1 px-3 rounded bg-gray-900 border border-gray-850 text-gray-600 text-xs font-mono cursor-not-allowed font-medium"
+                      className="py-1 px-2.5 rounded bg-gray-900 border border-gray-850 text-gray-600 text-[10px] font-mono cursor-not-allowed font-medium"
                     >
-                      DIKLAIM
+                      CLAIMED
                     </button>
                   ) : tgGroupClicked ? (
                     <button 
                       onClick={handleClaimGroupReward}
-                      className="py-1 px-3 rounded bg-green-500 text-black hover:bg-green-400 active:scale-95 text-xs font-mono font-black transition shadow animate-pulse"
+                      className="py-1 px-2.5 rounded bg-green-500 text-black hover:bg-green-400 active:scale-95 text-[10px] font-mono font-black transition shadow animate-pulse"
                     >
-                      KLAIM RP 1.000!
+                      CLAIM NOW!
                     </button>
                   ) : (
                     <button 
                       disabled 
-                      className="py-1 px-3 rounded bg-gray-800 text-gray-500 text-xs font-mono cursor-not-allowed border border-gray-750 font-medium"
-                      title="Kunjungi Group Tele terlebih dahulu"
+                      className="py-1 px-2.5 rounded bg-gray-800 text-gray-500 text-[10px] font-mono cursor-not-allowed border border-gray-750 font-medium"
+                      title="Please visit the Telegram group first"
                     >
-                      BELUM DIBUKA
+                      LOCKED
                     </button>
                   )}
                 </div>
               </div>
             </div>
+
+            {/* Achievements items */}
+            {achievements.map((ach) => {
+              const progressPct = Math.min(100, Math.floor((ach.current / ach.target) * 100));
+              const isFinished = ach.current >= ach.target;
+
+              return (
+                <div 
+                  key={ach.id}
+                  className={`p-4 rounded-xl border flex flex-col justify-between ${
+                    ach.completed 
+                      ? "border-gray-850 bg-gray-950/20 opacity-70" 
+                      : isFinished 
+                        ? "border-green-500 bg-green-500/5 animate-pulse" 
+                        : "border-gray-800 bg-[#161a29]"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3 text-left">
+                    <div className="min-w-0">
+                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                        Game Milestone
+                      </span>
+                      <h4 className={`text-sm font-bold mt-2 ${ach.completed ? "text-gray-500 line-through" : "text-white"}`}>
+                        {ach.title}
+                      </h4>
+                      <p className="text-xs text-gray-400 mt-1 leading-snug">
+                        {ach.description}
+                      </p>
+                    </div>
+                    {ach.completed ? (
+                      <span className="p-1 rounded-full bg-gray-905 border border-gray-850 text-gray-650 shrink-0">
+                        <CheckCircle size={16} />
+                      </span>
+                    ) : (
+                      <span className="p-1.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 shrink-0">
+                        <Gift size={16} />
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-4">
+                    <div className="flex justify-between items-center text-[10px] font-mono text-gray-500 mb-1">
+                      <span>Progress: {ach.current.toLocaleString()}/{ach.target.toLocaleString()}</span>
+                      <span>{progressPct}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-gray-900 rounded-full overflow-hidden border border-gray-800">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          ach.completed ? "bg-gray-700" : isFinished ? "bg-green-500" : "bg-amber-500"
+                        }`}
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex justify-between items-center pt-2 border-t border-gray-800/50">
+                    <span className="text-[10px] font-mono font-bold text-green-400 uppercase">
+                      REWARD: 🪙 +{ach.reward} LDR
+                    </span>
+
+                    {ach.completed ? (
+                      <button 
+                        disabled 
+                        className="py-1 px-3 rounded bg-gray-900 border border-gray-850 text-gray-600 text-xs font-mono cursor-not-allowed font-medium"
+                      >
+                        CLAIMED
+                      </button>
+                    ) : isFinished ? (
+                      <button 
+                        onClick={() => { playUpgradeSound(); onClaimAchievement(ach.id, ach.reward); }}
+                        className="py-1 px-3 rounded bg-green-500 text-[#0d0f14] hover:brightness-105 active:scale-95 text-xs font-mono font-bold transition shadow"
+                      >
+                        CLAIM NOW!
+                      </button>
+                    ) : (
+                      <button 
+                        disabled 
+                        className="py-1 px-3 rounded bg-gray-800 text-gray-500 text-xs font-mono cursor-not-allowed border border-gray-750 font-medium"
+                      >
+                        LOCK
+                      </button>
+                    )}
+                  </div>
+
+                </div>
+              );
+            })}
           </div>
 
         </div>
@@ -646,8 +634,8 @@ export default function LeaderboardAndQuests({
       {activeSubTab === 'shop' && (
         <div className="space-y-4 text-left">
           <div className="mb-2">
-            <h4 className="text-sm font-bold text-white">Persediaan Taktis Penambangan</h4>
-            <p className="text-xs text-gray-400">Beli peralatan meledakkan area dan manipulasi kohesi magnetik yang dapat dimuntahkan langsung dalam mode Game Tambahan!</p>
+            <h4 className="text-sm font-bold text-white uppercase tracking-wider font-mono">Tactical Mining Equipment Depot</h4>
+            <p className="text-xs text-gray-400">Upgrade tactical blast accessories and electromagnetic triggers to clear unwanted low-tier debris in the fusion board!</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -660,31 +648,31 @@ export default function LeaderboardAndQuests({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-bold text-white">Item: Granat Dinamit Tambang</h4>
+                    <h4 className="text-sm font-bold text-white">Item: Mining Dynamite Grenade</h4>
                     <span className="text-[9px] font-mono bg-red-500/10 border border-red-500/20 text-red-400 p-0.5 px-2 rounded-full">
-                      Miliki: {dynamiteCount}
+                      Owned: {dynamiteCount}
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 mt-1 leading-snug">
-                    Digunakan saat bermain game merge untuk meledakkan dan membersihkan semua material level 0 (Batu Bara) & 1 (Tembaga) yang mempersempit corong reaktor.
+                    Instantly obliterates all level 0 (Coal) and level 1 (Copper) blocks choking up the reactor grid. Use wisely to prevent Game Over disasters!
                   </p>
                 </div>
               </div>
 
               <div className="w-full sm:w-auto flex sm:flex-col justify-between sm:justify-center items-center sm:items-end gap-2 border-t sm:border-t-0 border-gray-800/60 pt-2.5 sm:pt-0 shrink-0">
-                <div className="font-mono text-xs font-semibold text-gray-400">
-                  Biaya: 🪙 {DYNAMITE_COST} LDR
+                <div className="font-mono text-xs font-semibold text-gray-450">
+                  Cost: 🪙 {DYNAMITE_COST} LDR
                 </div>
                 <button
                   onClick={() => handlePurchaseTool('dynamite', DYNAMITE_COST)}
                   disabled={profile.ldrBalance < DYNAMITE_COST}
-                  className={`w-full sm:w-auto py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                  className={`w-full sm:w-auto py-2 px-3.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                     profile.ldrBalance >= DYNAMITE_COST
-                      ? "bg-red-500 text-white hover:bg-red-600 active:scale-95 shadow"
+                      ? "bg-red-500 text-white hover:bg-red-650 active:scale-95 shadow"
                       : "bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-750"
                   }`}
                 >
-                  <span>BELI 1 UNIT</span>
+                  <span>BUY ITEM</span>
                 </button>
               </div>
             </div>
@@ -697,31 +685,31 @@ export default function LeaderboardAndQuests({
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-bold text-white">Item: Elektromagnet Fusi</h4>
+                    <h4 className="text-sm font-bold text-white">Item: Fusion Electromagnet</h4>
                     <span className="text-[9px] font-mono bg-blue-500/10 border border-blue-500/20 text-blue-400 p-0.5 px-2 rounded-full">
-                      Miliki: {magnetCount}
+                      Owned: {magnetCount}
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 mt-1 leading-snug">
-                    Menarik kuat-kuat dua mineral bernilai moderat sejenis yang posisinya berdekatan agar segera melebur dan memicu rantai efek kombo!
+                    Pulls matching nearby moderate-tier ores with strong force, automatically fusing them to launch combo cascades and free up valuable space.
                   </p>
                 </div>
               </div>
 
               <div className="w-full sm:w-auto flex sm:flex-col justify-between sm:justify-center items-center sm:items-end gap-2 border-t sm:border-t-0 border-gray-800/60 pt-2.5 sm:pt-0 shrink-0">
-                <div className="font-mono text-xs font-semibold text-gray-400">
-                  Biaya: 🪙 {MAGNET_COST} LDR
+                <div className="font-mono text-xs font-semibold text-gray-450">
+                  Cost: 🪙 {MAGNET_COST} LDR
                 </div>
                 <button
                   onClick={() => handlePurchaseTool('magnet', MAGNET_COST)}
                   disabled={profile.ldrBalance < MAGNET_COST}
-                  className={`w-full sm:w-auto py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                  className={`w-full sm:w-auto py-2 px-3.5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                     profile.ldrBalance >= MAGNET_COST
-                      ? "bg-blue-500 text-white hover:bg-blue-600 active:scale-95 shadow"
+                      ? "bg-blue-500 text-white hover:bg-blue-650 active:scale-95 shadow"
                       : "bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-750"
                   }`}
                 >
-                  <span>BELI 1 UNIT</span>
+                  <span>BUY ITEM</span>
                 </button>
               </div>
             </div>
@@ -730,10 +718,10 @@ export default function LeaderboardAndQuests({
 
           <div className="bg-[#181d2c] border border-gray-800 p-4 rounded-xl mt-4 flex items-start gap-3">
             <span className="p-1 px-2.5 bg-yellow-400/10 border border-yellow-400/20 text-yellow-400 font-mono text-[11px] rounded uppercase font-bold tracking-widest shrink-0 mt-0.5">
-              TIPS LOGISTIK:
+              LOGISTICAL TIP:
             </span>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Dinamit sangat krusial digunakan jika tumpukan batuan hampir mencapai <span className="text-red-400">Garis Merah Batas Bahaya</span>. Jangan biarkan reaktor meletus atau rekam pertambanganmu akan terhenti secara mendadak! Anda mendapatkan komisi gratis berupa Dinamit/Magnet setiap kali sukses mengklaim sasaran Pencapaian di tab atas.
+              Dynamite is absolutely critical when elements climb near the <span className="text-red-400">Danger Line</span> trigger. Ensure you keep a handful of boosters ready to protect your session. You can also get free items by completing of Milestone Quests listed in achievements dashboard.
             </p>
           </div>
         </div>

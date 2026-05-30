@@ -79,18 +79,18 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
 
     const targetEmail = forgotInputEmail.toLowerCase().trim();
     if (!targetEmail) {
-      setForgotFeedback("Silakan masukkan alamat email terlebih dahulu!");
+      setForgotFeedback("Please enter your email address first!");
       return;
     }
 
     const matchedUser = registeredUsers.find(u => u.email.toLowerCase() === targetEmail);
     if (!matchedUser) {
-      setForgotFeedback("Alamat email tidak terdaftar di reaktor LDR Coin. Harap daftarkan baru!");
+      setForgotFeedback("Email address is not registered in the LDR Coin reactor database. Please register as a new user.");
       return;
     }
 
     playUpgradeSound();
-    setForgotSucc(`KOSMOLOGI VERIFIKASI: Akun "${matchedUser.profile.username}" ditemukan! Kata sandi saat ini: ${matchedUser.passwordHash}. (Anda juga dapat merubah sandi akun ini di 🔐).`);
+    setForgotSucc(`VERIFICATION SUCCESSFUL: Account "${matchedUser.profile.username}" found! Current Password: ${matchedUser.passwordHash}. (You can also update your credentials inside the 🔐 Admin Panel after logging in).`);
   };
 
   // Seeding mock logins to make it immediately testable or list old loggers
@@ -105,7 +105,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
       try {
         initialList = JSON.parse(saved);
       } catch (e) {
-        console.error("Gagal memuat pengguna terdaftar:", e);
+        console.error("Failed to parse saved user profiles:", e);
       }
     } else {
       updatedNeeded = true;
@@ -263,7 +263,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
   // 1. Password Strength calculation metrics
   const getPasswordStrength = () => {
     let score = 0;
-    if (!password) return { score, label: "Kosong", color: "bg-gray-800" };
+    if (!password) return { score, label: "Empty", color: "bg-gray-800" };
     
     // Length check
     if (password.length >= 8) score += 1;
@@ -276,15 +276,15 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
 
     switch (score) {
       case 1:
-        return { score, label: "Lemah (Masukkan angka/kapital)", color: "bg-red-500 w-1/4" };
+        return { score, label: "Weak (Add numbers or capital letters)", color: "bg-red-500 w-1/4" };
       case 2:
-        return { score, label: "Cukup Baik (Tambah karakter unik)", color: "bg-orange-400 w-2/4" };
+        return { score, label: "Fair (Add special characters)", color: "bg-orange-400 w-2/4" };
       case 3:
-        return { score, label: "Kuat (Sangat Aman)", color: "bg-yellow-400 w-3/4" };
+        return { score, label: "Strong (Highly Secure)", color: "bg-yellow-400 w-3/4" };
       case 4:
-        return { score, label: "Sempurna (Enkripsi Maksimal)", color: "bg-green-400 w-full" };
+        return { score, label: "Perfect (Maximum Encryption)", color: "bg-green-400 w-full" };
       default:
-        return { score, label: "Sangat Lemah", color: "bg-red-600 w-12" };
+        return { score, label: "Extremely Weak", color: "bg-red-600 w-12" };
     }
   };
 
@@ -302,12 +302,12 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
 
     const cleanEmail = email.toLowerCase().trim();
     if (!cleanEmail || !isValidEmail(cleanEmail)) {
-      setErrorMessage("Harap masukkan format alamat Email yang valid!");
+      setErrorMessage("Please enter a valid email address!");
       return;
     }
 
     if (!password) {
-      setErrorMessage("Kata sandi tidak boleh kosong!");
+      setErrorMessage("Password cannot be empty!");
       return;
     }
 
@@ -320,40 +320,40 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
       if (foundUser) {
         // Success login loads their active profiles
         playUpgradeSound();
-        setSuccessMessage(`Berhasil masuk! Selamat datang kembali, ${foundUser.profile.username}.`);
+        setSuccessMessage(`Access Granted! Welcome back, ${foundUser.profile.username}.`);
         localStorage.setItem("ldr_active_email", foundUser.email.toLowerCase().trim());
         setTimeout(() => {
           onComplete(foundUser.profile);
         }, 1200);
       } else {
-        setErrorMessage("Akses Ditolak! Alamat email atau kata sandi Anda keliru.");
+        setErrorMessage("Access Denied! Incorrect email address or password.");
       }
     } else {
       // ---------------- REGISTER FLOW ----------------
       if (!username.trim()) {
-        setErrorMessage("Nama operator penambang tidak boleh kosong!");
+        setErrorMessage("Miner username cannot be empty!");
         return;
       }
       if (username.length < 3) {
-        setErrorMessage("Nama penambang harus minimal 3 karakter!");
+        setErrorMessage("Miner username must be at least 3 characters!");
         return;
       }
       if (username.length > 15) {
-        setErrorMessage("Nama penambang maksimal 15 karakter!");
+        setErrorMessage("Miner username cannot exceed 15 characters!");
         return;
       }
 
       // Password Strength constraints
       const strength = getPasswordStrength();
       if (strength.score < 2) {
-        setErrorMessage("Kata sandi terlalu lemah! Silakan buat kata sandi yang lebih panjang atau sertakan kombinasi angka.");
+        setErrorMessage("Password too weak! Please make your password longer or add numeric characters.");
         return;
       }
 
       // Check duplicate email
       const isDuplicate = registeredUsers.some(u => u.email === cleanEmail);
       if (isDuplicate) {
-        setErrorMessage("Alamat email ini sudah terdaftar! Harap masuk akun atau gunakan email lain.");
+        setErrorMessage("This email address is already registered! Please login or use a different email.");
         return;
       }
 
@@ -396,7 +396,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
         saveUserCredentials(email, password, tempProfile);
         
         localStorage.setItem("ldr_active_email", email.toLowerCase().trim());
-        setSuccessMessage(`Akun baru ${tempProfile.username} berhasil terdaftar dan diverifikasi! Memuat stasiun...`);
+        setSuccessMessage(`New account for ${tempProfile.username} successfully registered and verified! Loading rig cavern...`);
         setShowOtpScreen(false);
         setUserEnteredOtp("");
         
@@ -405,7 +405,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
         }, 1500);
       }
     } else {
-      setErrorMessage("Kode verifikasi OTP tidak sesuai! Silakan verifikasi ulang nomor kode.");
+      setErrorMessage("Invalid OTP verification code! Please check and enter the correct code.");
       // Auto blink close after some seconds
     }
   };
@@ -413,8 +413,8 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
   const roles = [
     {
       id: "driller",
-      name: "Drill Master (Master Bor)",
-      desc: "Bonus: Produksi Rig Otomatis berjalan +10% lebih cepat dengan daya traksi stabil.",
+      name: "Drill Master",
+      desc: "Bonus: Automated Rig production operates +10% faster with continuous high-torque traction.",
       perk: "+10% Rig Yield Boost",
       icon: Flame,
       color: "from-orange-500 to-amber-600",
@@ -424,9 +424,9 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
     },
     {
       id: "geologist",
-      name: "Geologist (Ahli Geologi)",
-      desc: "Bonus: Memulai karir tambang langsung dengan 1 unit Konveyor Saringan gratis.",
-      perk: "Gratis 1 Unit Konveyor Sifter",
+      name: "Geologist",
+      desc: "Bonus: Start your mining operations instantly with 1 unit of free Conveyor Sifter.",
+      perk: "Free 1 Unit Conveyor Sifter",
       icon: Compass,
       color: "from-purple-500 to-indigo-600",
       textColor: "text-purple-400",
@@ -435,8 +435,8 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
     },
     {
       id: "broker",
-      name: "Gem Broker (Pialang Permata)",
-      desc: "Bonus: Memperoleh +15% lebih banyak koin LDR aktif pada setiap fusi mineral.",
+      name: "Gem Broker",
+      desc: "Bonus: Gain +15% more active LDR coins on every manual ore merge and crystal fusion.",
       perk: "+15% Active Merge Coins",
       icon: Shield,
       color: "from-emerald-500 to-teal-600",
@@ -461,7 +461,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
         <button 
           onClick={() => { onToggleMute(); playClickSound(); }}
           className="p-2 rounded-lg bg-gray-800/60 border border-gray-700/50 text-gray-400 hover:text-amber-400 hover:bg-gray-800 transition"
-          title={isMuted ? "Aktifkan Suara" : "Bisukan Suara"}
+          title={isMuted ? "Unmute Sound" : "Mute Sound"}
         >
           {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </button>
@@ -478,20 +478,20 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
                 <KeyRound size={24} className="animate-pulse" />
               </div>
 
-              <h3 className="text-xl font-bold text-white tracking-tight">Verifikasi Alamat Email</h3>
+              <h3 className="text-xl font-bold text-white tracking-tight">Email Validation Required</h3>
               <p className="text-xs text-gray-400 mt-2 leading-relaxed">
-                Federasi tambang koin LDR sedang mengirimkan kode otentikasi operator baru virtual ke email Anda: <strong className="text-amber-400">{email}</strong>.
+                The LDR Coin mining system has dispatched a virtual operator verification code to: <strong className="text-amber-400">{email}</strong>.
               </p>
 
               {/* Simulated Inbox alert */}
               <div className="bg-[#090b10] border border-amber-500/30 p-3 rounded-lg my-4 text-xs font-mono text-left">
-                <span className="text-[10px] text-amber-500 font-bold block mb-1">📬 INBOX SIMULASI (SANDPAN):</span>
+                <span className="text-[10px] text-amber-500 font-bold block mb-1">📬 SIMULATED INBOX (SANDBOX):</span>
                 <p className="text-gray-300 leading-tight">
-                  Dari: <strong>ldr-auth@galaxy-federation.org</strong>
+                  From: <strong>ldr-auth@galaxy-federation.org</strong>
                   <br />
-                  Kode OTP Anda: <strong className="text-amber-400 text-sm select-all tracking-widest">{generatedOtp}</strong>
+                  Your OTP Code: <strong className="text-amber-400 text-sm select-all tracking-widest">{generatedOtp}</strong>
                 </p>
-                <span className="text-[9px] text-gray-500 block mt-1.5">*Silakan ketik atau salin kode 4 digit di atas ke kolom verifikasi.</span>
+                <span className="text-[9px] text-gray-500 block mt-1.5">*Copy or enter specified 4-digit code in field below to authenticate.</span>
               </div>
 
               <form onSubmit={handleVerifyOtpSubmit} className="space-y-4">
@@ -503,7 +503,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
                     setUserEnteredOtp(e.target.value.replace(/\D/g, ""));
                     if (errorMessage) setErrorMessage("");
                   }}
-                  placeholder="Masukkan 4 digit OTP"
+                  placeholder="Enter 4 digit OTP"
                   className="w-full text-center text-xl font-bold tracking-[0.5em] font-mono py-3 bg-gray-900 border border-gray-700 rounded-lg text-amber-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                 />
 
@@ -513,13 +513,13 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
                     onClick={() => { playClickSound(); setShowOtpScreen(false); }}
                     className="flex-1 py-2.5 rounded-xl border border-gray-700 text-xs text-gray-400 hover:bg-gray-850 hover:text-white transition uppercase font-bold"
                   >
-                    Batal
+                    Cancel
                   </button>
                   <button
                     type="submit"
                     className="flex-1 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-black transition hover:brightness-110 uppercase"
                   >
-                    Verifikasi Akun
+                    Verify Account
                   </button>
                 </div>
               </form>
@@ -536,15 +536,15 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
                 <KeyRound size={24} />
               </div>
 
-              <h3 className="text-xl font-bold text-white tracking-tight">Otentikasi & Lupa Password</h3>
+              <h3 className="text-xl font-bold text-white tracking-tight">Forgot Password Assistant</h3>
               <p className="text-xs text-gray-400 mt-2 leading-relaxed font-mono">
-                Federasi LDR Coin dapat memulihkan kata sandi lokal akun Anda secara instan. Silakan masukkan alamat email yang terdaftar.
+                The LDR Federation portal can retrieve your local credentials instantly. Please enter your registered email address.
               </p>
 
               <form onSubmit={handleRequestForgotPassword} className="space-y-4 my-4">
                 <div>
                   <label className="block text-[10px] font-mono text-left uppercase tracking-wider text-gray-400 mb-1">
-                    ALAMAT EMAIL OPERATOR:
+                    OPERATOR EMAIL ADDRESS:
                   </label>
                   <input
                     type="email"
@@ -555,7 +555,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
                       setForgotFeedback("");
                       setForgotSucc("");
                     }}
-                    placeholder="Contoh: kusumax@ldrcoin.com"
+                    placeholder="E.g., kusumax@ldrcoin.com"
                     className="w-full text-center text-sm font-mono py-2.5 bg-gray-900 border border-gray-750 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20"
                   />
                 </div>
@@ -578,19 +578,19 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
                     onClick={() => { playClickSound(); setShowForgotHelper(false); }}
                     className="flex-1 py-2.5 rounded-xl border border-gray-700 text-xs text-gray-400 hover:bg-gray-850 hover:text-white transition uppercase font-bold"
                   >
-                    Tutup
+                    Close
                   </button>
                   <button
                     type="submit"
                     className="flex-1 py-2.5 rounded-xl bg-amber-500 text-black text-xs font-black transition hover:brightness-110 uppercase focus:outline-none"
                   >
-                    Cari Sandi
+                    Get Password
                   </button>
                 </div>
               </form>
 
               <div className="border-t border-gray-800/60 pt-3 text-[10px] font-mono text-gray-500 text-left leading-normal">
-                💡 <strong>Catatan Admin:</strong> Anda teridentifikasi sebagai administrator atau pengguna berwenang. Anda juga dapat dengan cepat mengganti, menghapus, atau melihat kata sandi semua operator secara visual pada tab <strong>🔐</strong> di atas stasiun pertambangan Anda setelah berhasil login!
+                💡 <strong>Admin Note:</strong> Once logged in, authorized administrative users can also manage, retrieve, and delete general operator passwords inside the custom <strong>🔐 Admin Panel</strong> tab.
               </div>
               
             </div>
@@ -608,11 +608,11 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
               LDR MINER FUSION
             </h1>
             <p className="text-[10px] text-amber-500/80 font-mono mt-1.5 uppercase tracking-widest leading-none">
-              PROTOKOL OTENTIKASI SECURE v1.6
+              AUTHENTICATION GATEWAY v1.6
             </p>
             
             <p className="text-gray-400 text-xs mt-3.5 leading-relaxed">
-              Stasiun penambangan koin LDR. Selesaikan pendaftaran operator, kumpulkan kekayaan fusi mineral, saring material, dan withdraw aset LDR Anda ke rekening nyata secara aman!
+              Welcome to the LDR Coin mining station. Complete your operator credentials, deploy automated mineral extraction rigs, fuse ore materials, and securely withdraw your earnings to actual payout destinations!
             </p>
           </div>
 
@@ -626,15 +626,15 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 to-transparent shadow-inner" />
             <span className="absolute bottom-2.5 left-2.5 text-[9px] font-mono tracking-widest bg-amber-500 text-black px-1.5 py-0.5 rounded font-black uppercase">
-              REAKTOR SUIKA 2D
+              2D SUIKA ENGINE
             </span>
           </div>
 
           <div className="relative z-10 bg-gray-900/60 p-4 border border-gray-850 rounded-xl font-mono text-[11px] leading-tight text-gray-400 space-y-1 structure">
-            <span className="text-amber-400 font-bold block mb-1">🌐 DETAIL DEMO LOGIN CEPAT:</span>
+            <span className="text-amber-400 font-bold block mb-1">🌐 QUICK TEST DEMO CREDENTIALS:</span>
             <p>• Email: <strong className="text-white">demo@ldrcoin.com</strong></p>
-            <p>• Kata Sandi: <strong className="text-white">demo1234</strong></p>
-            <p className="text-[10px] text-gray-500 block pt-1">(Saran: Buat akun baru gratis untuk mencoba spesialisasi khusus kustom Anda)</p>
+            <p>• Password: <strong className="text-white">demo1234</strong></p>
+            <p className="text-[10px] text-gray-500 block pt-1">(Hint: Create a free custom account to evaluate other class specializations)</p>
           </div>
         </div>
 
@@ -651,7 +651,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
                   : "text-gray-400 hover:text-white"
               }`}
             >
-              Daftar Baru
+              Sign Up
             </button>
             <button
               onClick={() => handleToggleAuthMode('login')}
@@ -661,17 +661,17 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
                   : "text-gray-400 hover:text-white"
               }`}
             >
-              Masuk Akun
+              Sign In
             </button>
           </div>
 
           <h2 className="text-xl font-black tracking-tight text-white mb-1.5">
-            {authMode === "register" ? "REGISTRASI OPERATOR UTAMA" : "MASUK STASIUN UTAMA"}
+            {authMode === "register" ? "REGISTER OPERATOR" : "OPERATOR LOG IN"}
           </h2>
           <p className="text-[11px] text-gray-400 mb-5 font-mono">
             {authMode === "register" 
-              ? "Lengkapi formulir operator dengan validasi Email dan Kata Sandi terenkripsi."
-              : "Masukkan kredensial operator terverifikasi untuk melanjutkan penyimpanan."
+              ? "Fill out the registration form to acquire secure terminal credentials and roles."
+              : "Provide your authenticated credentials to access the central reactors."
             }
           </p>
 
@@ -681,7 +681,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
             {authMode === "register" && (
               <div>
                 <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1">
-                  NAMA OPERATOR PENAMBANG:
+                  MINER USERNAME:
                 </label>
                 <div className="relative rounded-lg shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500">
@@ -694,7 +694,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
                       setUsername(e.target.value);
                       if (errorMessage) setErrorMessage("");
                     }}
-                    placeholder="Masukkan nama operator tambang..."
+                    placeholder="Enter miner operator username..."
                     className="w-full pl-10 pr-4 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 text-xs"
                     maxLength={15}
                   />
@@ -705,7 +705,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
             {/* Input: Email */}
             <div>
               <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1">
-                ALAMAT EMAIL RESMI (EMAIL VALIDATION):
+                AUTHORIZED EMAIL ADDRESS:
               </label>
               <div className="relative rounded-lg shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-500">
@@ -725,7 +725,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
               {email && !isValidEmail(email) && (
                 <p className="text-[10px] text-orange-400 font-mono mt-1 flex items-center gap-1">
                   <AlertCircle size={10} />
-                  <span>Harap sertakan domain email lengkap (contoh: name@domain.com)</span>
+                  <span>Please provide a complete and valid email address (e.g., name@domain.com)</span>
                 </p>
               )}
             </div>
@@ -734,7 +734,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 leading-none">
-                  KATA SANDI OPERATOR (SECURE PASSWORD):
+                  OPERATOR SECURE PASSWORD:
                 </label>
                 {authMode === "login" && (
                   <button
@@ -748,7 +748,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
                     }}
                     className="text-[10px] font-mono font-black text-amber-400 hover:text-amber-300 hover:underline cursor-pointer select-none leading-none"
                   >
-                    LUPA PASSWORD?
+                    FORGOT PASSWORD?
                   </button>
                 )}
               </div>
@@ -763,7 +763,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
                     setPassword(e.target.value);
                     if (errorMessage) setErrorMessage("");
                   }}
-                  placeholder={authMode === "register" ? "Buat kata sandi aman..." : "Masukkan kata sandi Anda..."}
+                  placeholder={authMode === "register" ? "Create secure password..." : "Enter your password..."}
                   className="w-full pl-10 pr-10 py-2.5 bg-gray-900 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 font-sans text-xs"
                 />
                 <button
@@ -779,7 +779,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
               {authMode === "register" && password && (
                 <div className="mt-2 text-[10px] font-mono space-y-1">
                   <div className="flex justify-between text-gray-400">
-                    <span>Kekuatan Proteksi:</span>
+                    <span>Protection Level:</span>
                     <span className="font-bold text-amber-400">{getPasswordStrength().label}</span>
                   </div>
                   {/* Visual progress bar */}
@@ -787,10 +787,10 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
                     <div className={`h-full transition-all duration-300 rounded-full ${getPasswordStrength().color}`} />
                   </div>
                   <div className="grid grid-cols-2 gap-1 text-[9px] text-gray-500 pt-1 leading-none">
-                    <span className={password.length >= 8 ? "text-green-400" : "text-gray-500"}>✔ Min. 8 karakter</span>
-                    <span className={/[a-z]/.test(password) && /[A-Z]/.test(password) ? "text-green-400" : "text-gray-500"}>✔ Huruf Besar/Kecil</span>
-                    <span className={/\d/.test(password) ? "text-green-400" : "text-gray-500"}>✔ Menyertakan angka</span>
-                    <span className={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) ? "text-green-400" : "text-gray-500"}>✔ Karakter Spesial</span>
+                    <span className={password.length >= 8 ? "text-green-400" : "text-gray-500"}>✔ Min. 8 Characters</span>
+                    <span className={/[a-z]/.test(password) && /[A-Z]/.test(password) ? "text-green-400" : "text-gray-500"}>✔ Uppercase & Lowercase</span>
+                    <span className={/\d/.test(password) ? "text-green-400" : "text-gray-500"}>✔ Numeric digit</span>
+                    <span className={/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password) ? "text-green-400" : "text-gray-500"}>✔ Special Symbol</span>
                   </div>
                 </div>
               )}
@@ -800,7 +800,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
             {authMode === "register" && (
               <div>
                 <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1.5">
-                  PILIH SPESIALISASI PENAMBANG (ROLE CLASS PERK):
+                  SELECT MINER SPECIALIZATION (CLASS PERK):
                 </label>
                 
                 <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1">
@@ -861,7 +861,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
                   className="w-3.5 h-3.5 text-amber-500 border-gray-700 rounded bg-gray-900 focus:ring-amber-500 mt-0.5"
                 />
                 <label htmlFor="agree-checkbox" className="text-[10px] text-gray-400 leading-tight select-none cursor-pointer">
-                  Saya setuju menyimpan hasil koin LDR pada server berkas lokal peramban, mematuhi fusi atom material tambang, dan verifikasi OTP.
+                  I agree to securely persist state configurations locally, comply with the chemical element fusion physics, and proceed with OTP validation.
                 </label>
               </div>
             )}
@@ -878,7 +878,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
             >
               <Play size={14} fill="currentColor" />
               <span>
-                {authMode === "register" ? "MULAI DAFTAR & VERIFIKASI" : "CONEK KAN OPERATOR"}
+                {authMode === "register" ? "REGISTER & VERIFY" : "CONNECT OPERATOR STATION"}
               </span>
               <ArrowRight size={14} />
             </button>
@@ -890,8 +890,8 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
 
       {/* Footer */}
       <div className="max-w-6xl w-full mx-auto text-center py-4 border-t border-gray-800/40 text-[10px] font-mono text-gray-600 flex flex-col sm:flex-row justify-between items-center gap-2">
-        <p>© 2026 LDR COIN MINER FUSION - GAMEPLAY SUIKA ENGINE COLLISION 2D</p>
-        <p>RESTORAN PERTAMBANGAN INTELIGEN TERPERSINTASI LOKAL</p>
+        <p>© 2026 LDR COIN MINER FUSION - 2D PHYSICS FUSION SUIKA ENGINE</p>
+        <p>DISTRIBUTED AUTONOMOUS GEO-EXTRACTION NODE</p>
       </div>
 
     </div>

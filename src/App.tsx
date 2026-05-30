@@ -376,7 +376,7 @@ export default function App() {
       });
     }
 
-    triggerNotification(`Selamat Datang, ${newProfile.username}! Siap menyelam ke Deep Core.`);
+    triggerNotification(`Welcome, ${newProfile.username}! Ready to dive into the Deep Core.`);
   };
 
   // Helper flash notifier
@@ -418,7 +418,7 @@ export default function App() {
         let updatedLvl = prev.level;
         if (calculatedLvl > prev.level) {
           updatedLvl = calculatedLvl;
-          triggerNotification(`🎉 NAIK LEVEL TAMBANG! Anda sekarang Level ${calculatedLvl}!`);
+          triggerNotification(`🎉 MINING LEVEL UP! You are now Level ${calculatedLvl}!`);
           playUpgradeSound();
         }
 
@@ -481,7 +481,7 @@ export default function App() {
                 localStorage.setItem(`ldr_miner_profile${suffix}`, JSON.stringify(nextProfile));
                 localStorage.setItem("ldr_miner_profile", JSON.stringify(nextProfile));
                 
-                triggerNotification(`🔔 Saldo Rupiah terupdate: Rp ${firebaseUser.rupiahBalance.toLocaleString("id-ID")}!`);
+                triggerNotification(`🔔 Rupiah Balance Updated: Rp ${firebaseUser.rupiahBalance.toLocaleString("id-ID")}!`);
                 return nextProfile;
               }
               return current;
@@ -507,7 +507,7 @@ export default function App() {
     if (!profile) return false;
     const currentRp = profile.rupiahBalance || 0;
     if (currentRp < 80) {
-      triggerNotification("⚠️ Saldo tidak cukup! Biaya gas menjatuhkan ore adalah Rp 80. Silakan isi saldo di menu PAYOUT & CAIR.");
+      triggerNotification("⚠️ Insufficient balance! The gas fee to drop ore is Rp 80. Please top up your balance under PAYOUT & WITHDRAW.");
       return false;
     }
     const nextProfile = { ...profile, rupiahBalance: currentRp - 80 };
@@ -548,7 +548,7 @@ export default function App() {
     let updatedLvl = profile.level;
     if (calculatedLvl > profile.level) {
       updatedLvl = calculatedLvl;
-      triggerNotification(`🎉 NAIK LEVEL PENAMBANG! Sekarang Level ${calculatedLvl}!`);
+      triggerNotification(`🎉 MINING LEVEL UP! Currently Level ${calculatedLvl}!`);
       playUpgradeSound();
     }
 
@@ -563,16 +563,16 @@ export default function App() {
     // 10. Rp 10.000
     if (maxMergedLevel === 7) {
       fusiRupiahAdd = 600;
-      extraBonusMsg = "🔵 Fusi Permata Safir (Lv.7)!";
+      extraBonusMsg = "🔵 Sapphire Gem Fusion (Lv.7)!";
     } else if (maxMergedLevel === 8) {
       fusiRupiahAdd = 2500;
-      extraBonusMsg = "🔴 Fusi Permata Delima (Lv.8)!";
+      extraBonusMsg = "🔴 Ruby Gem Fusion (Lv.8)!";
     } else if (maxMergedLevel === 9) {
       fusiRupiahAdd = 5000;
-      extraBonusMsg = "🟣 Fusi Kristal Kecubung (Lv.9)!";
+      extraBonusMsg = "🟣 Amethyst Crystal Fusion (Lv.9)!";
     } else if (maxMergedLevel === 10) {
       fusiRupiahAdd = 10000;
-      extraBonusMsg = "👑 Fusi KOIN EMAS LDR (Lv.10)!";
+      extraBonusMsg = "👑 GOLD LDR COIN FUSION (Lv.10)!";
     }
 
     const nextRupiahBalance = (profile.rupiahBalance || 0) + fusiRupiahAdd;
@@ -590,10 +590,10 @@ export default function App() {
 
     // Toast alerts with specific rewards details
     if (fusiRupiahAdd > 0) {
-      triggerNotification(`✨ ${extraBonusMsg} Bonus Hadiah +Rp ${fusiRupiahAdd.toLocaleString("id-ID")} ditambahkan.`);
+      triggerNotification(`✨ ${extraBonusMsg} Bonus Reward +Rp ${fusiRupiahAdd.toLocaleString("id-ID")} added.`);
       playUpgradeSound();
     } else {
-      triggerNotification(`⛏️ Fusi Ore Berhasil!`);
+      triggerNotification(`⛏️ Ore Merged Successfully!`);
     }
 
     // Update Achievement progress
@@ -626,7 +626,7 @@ export default function App() {
     if (!found || !profile) return;
 
     if (profile.ldrBalance < found.cost) {
-      triggerNotification("⚠️ Saldo Koin LDR tidak mencukupi untuk membeli Rig ini.");
+      triggerNotification("⚠️ Insufficient LDR Coins to purchase this mining rig.");
       return;
     }
 
@@ -648,7 +648,7 @@ export default function App() {
 
     // Atomic Sync
     syncAndSaveData(nextProfile, nextRigs, nextAch, null, null);
-    triggerNotification(`🔩 Rig Otomatis Berhasil Terpasang: ${found.localName}!`);
+    triggerNotification(`🔩 Automated Rig successfully deployed: ${found.localName}!`);
   };
 
   // Upgrades manual gear level triggers
@@ -670,7 +670,7 @@ export default function App() {
 
     const actualCost = found.cost * found.level;
     if (profile.ldrBalance < actualCost) {
-      triggerNotification("⚠️ Saldo Koin LDR tidak mencukupi untuk modul Upgrade.");
+      triggerNotification("⚠️ Insufficient LDR Coins for this upgrade.");
       return;
     }
 
@@ -683,7 +683,7 @@ export default function App() {
 
     // Atomic Sync
     syncAndSaveData(nextProfile, nextRigs, null, null, null);
-    triggerNotification(`📈 Transmisi Upgrade Sukses! ${found.localName} sekarang Level ${found.level + 1}!`);
+    triggerNotification(`📈 Upgrade Successful! ${found.localName} is now Level ${found.level + 1}!`);
   };
 
   // Claim quest gains
@@ -705,10 +705,10 @@ export default function App() {
 
     if (randomRoll < 0.5) {
       nextDyn = dynamiteCount + 1;
-      triggerNotification(`🎁 Klaim Berhasil! Dapatkan 🪙+${rewardValue} LDR dan bonus +1 Dinamit Tambah.`);
+      triggerNotification(`🎁 Claim Successful! Obtained 🪙+${rewardValue} LDR and bonus +1 Dynamite Detonator.`);
     } else {
       nextMag = magnetCount + 1;
-      triggerNotification(`🎁 Klaim Berhasil! Dapatkan 🪙+${rewardValue} LDR dan bonus +1 Magnet Fusi.`);
+      triggerNotification(`🎁 Claim Successful! Obtained 🪙+${rewardValue} LDR and bonus +1 Fusion Electromagnet.`);
     }
 
     // Atomic Sync
@@ -740,10 +740,10 @@ export default function App() {
 
     if (toolId === "dynamite") {
       nextDyn = dynamiteCount + 1;
-      triggerNotification("🧨 Membeli 1 unit Dinamit Tambah.");
+      triggerNotification("🧨 Purchased 1 unit of Dynamite Detonator.");
     } else {
       nextMag = magnetCount + 1;
-      triggerNotification("🧲 Membeli 1 unit Magnet Fusi.");
+      triggerNotification("🧲 Purchased 1 unit of Fusion Electromagnet.");
     }
 
     // Atomic Sync
@@ -752,7 +752,7 @@ export default function App() {
 
   // Reset and clear profile accounts
   const handleClearDataAndReset = () => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus seluruh data profil dan menghentikan penambangan?")) return;
+    if (!window.confirm("Are you sure you want to delete all miner profile data and stop mining?")) return;
     playClickSound();
 
     const activeEmail = localStorage.getItem("ldr_active_email")?.toLowerCase().trim();
@@ -844,9 +844,9 @@ export default function App() {
                 </span>
               </div>
               <p className="text-[11px] font-mono text-amber-500/80 mt-1 uppercase tracking-wide">
-                Spesialisasi: {
+                Specialization: {
                   profile.role === 'driller' ? "Drill Master (+10% Rig Yield)" :
-                  profile.role === 'geologist' ? "Geologist (Mulai dgn Sifter)" : "Gem Broker (+15% Active Coins)"
+                  profile.role === 'geologist' ? "Geologist (Start with Sifter)" : "Gem Broker (+15% Active Coins)"
                 }
               </p>
 
@@ -865,7 +865,7 @@ export default function App() {
           {/* Central LDR Coin Balances counter */}
           <div className="bg-[#0b0c13] border border-gray-850 p-3 px-4 rounded-xl flex items-center justify-between md:justify-center gap-6">
             <div className="text-left">
-              <span className="text-[9px] font-mono text-gray-500 block uppercase tracking-wider">SALDO KEBANGGAAN</span>
+              <span className="text-[9px] font-mono text-gray-500 block uppercase tracking-wider">LDR BALANCE</span>
               <div className="text-xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-500 flex items-center gap-1">
                 <span>🪙</span>
                 <span>{profile.ldrBalance.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })} LDR</span>
@@ -875,7 +875,7 @@ export default function App() {
             <div className="h-9 w-px bg-gray-800" />
 
             <div className="text-left">
-              <span className="text-[9px] font-mono text-gray-500 block uppercase tracking-wider">SALDO ASSET (RP)</span>
+              <span className="text-[9px] font-mono text-gray-500 block uppercase tracking-wider">ASSET VALUATION (RP)</span>
               <div className="text-xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500 flex items-center gap-1">
                 <span>💸</span>
                 <span>Rp {(profile.rupiahBalance || 0).toLocaleString("id-ID")}</span>
@@ -885,7 +885,7 @@ export default function App() {
             <div className="h-9 w-px bg-gray-800" />
 
             <div className="text-left">
-              <span className="text-[9px] font-mono text-gray-500 block uppercase tracking-wider">KONDISI YIELD RIGS</span>
+              <span className="text-[9px] font-mono text-gray-500 block uppercase tracking-wider">RIGS ACTIVE YIELD</span>
               <span className="text-sm font-bold font-mono text-teal-400 mt-1 block">
                 +{(rigs.filter(r => r.category === "passive").reduce((acc, r) => acc + r.count * r.ldrPerSec * (r.level * 0.5 + 0.5), 0) * (profile.role === "driller" ? 1.10 : 1.0)).toFixed(1)}/s
               </span>
@@ -897,7 +897,7 @@ export default function App() {
             <button 
               onClick={() => { playClickSound(); handleToggleMuted(); }}
               className="p-3 rounded-xl bg-[#1d2334] border border-gray-750 text-gray-400 hover:text-amber-400 hover:bg-gray-800 transition shadow"
-              title={isMuted ? "Aktifkan suara" : "Bisukan suara"}
+              title={isMuted ? "Unmute sound" : "Mute sound"}
             >
               {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             </button>
@@ -905,16 +905,15 @@ export default function App() {
             <button 
               onClick={handleClearDataAndReset}
               className="p-3 rounded-xl bg-red-950/15 border border-red-900/30 text-rose-500 hover:bg-red-950/40 hover:border-red-900 transition shadow flex items-center gap-2 text-xs font-mono font-bold"
-              title="Reset data penambang"
+              title="Reset miner credentials"
             >
               <Power size={14} />
-              <span className="hidden md:inline">STOP PROFIL</span>
+              <span className="hidden md:inline">STOP PROFILE</span>
             </button>
           </div>
 
         </header>
 
-        {/* Navigation Tabs (Cyberpunk Button Rails) */}
         <nav className="flex flex-wrap bg-[#141822] border border-gray-850 rounded-2xl p-1.5 gap-2 select-none shadow">
           <button
             onClick={() => { playClickSound(); setActiveTab("merge_game"); }}
@@ -925,7 +924,7 @@ export default function App() {
             }`}
           >
             <Pickaxe size={16} />
-            <span>🌌 Fusi Tambang</span>
+            <span>🌌 Mine Fusion</span>
           </button>
 
           <button
@@ -937,7 +936,7 @@ export default function App() {
             }`}
           >
             <Cpu size={16} />
-            <span>🏭 RIG & KLIKER</span>
+            <span>🏭 Rigs Automation</span>
           </button>
 
           <button
@@ -949,7 +948,7 @@ export default function App() {
             }`}
           >
             <Award size={16} />
-            <span>🛒 TOKO & QUEST</span>
+            <span>🛒 Quests & Shop</span>
           </button>
 
           <button
@@ -961,7 +960,7 @@ export default function App() {
             }`}
           >
             <Wallet size={16} />
-            <span>💸 PAYOUT & CAIR</span>
+            <span>💸 Payout & Withdraw</span>
           </button>
 
           <button
@@ -973,7 +972,7 @@ export default function App() {
             }`}
           >
             <Activity size={16} />
-            <span>📈 ANALISIS PASAR</span>
+            <span>📈 Market Stats</span>
           </button>
 
           <button
@@ -985,7 +984,7 @@ export default function App() {
             }`}
           >
             <Sparkles size={16} className="text-amber-400" />
-            <span>🔗 REFERRAL</span>
+            <span>🔗 Referral</span>
           </button>
 
           {isAdminUser() && (
@@ -993,12 +992,12 @@ export default function App() {
               onClick={() => { playClickSound(); setActiveTab("admin_panel"); }}
               className={`flex-1 min-w-[120px] py-3 px-3 rounded-xl text-xs font-black tracking-wider uppercase transition flex items-center justify-center gap-2 ${
                 activeTab === "admin_panel"
-                  ? "bg-gradient-to-r from-red-600 to-amber-600 text-white shadow-md font-bold border border-amber-500"
+                  ? "bg-gradient-to-r from-red-650 to-amber-650 text-white shadow-md font-bold border border-amber-500"
                   : "text-red-400 hover:bg-red-950/20 hover:text-rose-300"
               }`}
             >
               <Lock size={15} />
-              <span>🔐 PANEL ADMIN</span>
+              <span>🔐 ADMIN PANEL</span>
             </button>
           )}
         </nav>
@@ -1015,7 +1014,7 @@ export default function App() {
               useDynamite={handleUseDynamite}
               useMagnet={handleUseMagnet}
               highScore={profile.highScore}
-              onGameOver={(score) => triggerNotification(`Sektor Runtuh! Sesi permainan ditutup pada ${score} Pts.`)}
+              onGameOver={(score) => triggerNotification(`Sector Collapsed! Permutation session closed at ${score} Pts.`)}
               isMuted={isMuted}
               onToggleMute={handleToggleMuted}
               onDrop={handleDropOre}
@@ -1091,7 +1090,7 @@ export default function App() {
 
         {/* App Footer */}
         <footer className="text-center py-6 border-t border-gray-800/25 text-[10px] font-mono text-gray-600 flex flex-col md:flex-row justify-between items-center gap-2">
-          <p>© 2026 LDR COIN MINER FUSION - KEKINGPINAN GALAKTIS DIGITAL INDONESIA</p>
+          <p>© 2026 LDR COIN MINER FUSION - INDONESIAN DIGITAL GALACTIC SOVEREIGNTY</p>
           <div className="flex items-center gap-3.5">
             <span className="text-teal-500">DEEP CORE STATUS: 100% OPERATIONAL</span>
             <span className="text-gray-600">|</span>
