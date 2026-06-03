@@ -6,7 +6,16 @@
 import React, { useState, useEffect } from "react";
 import { MinerProfile } from "../types";
 import { playClickSound, playUpgradeSound } from "../utils/audio";
-import { Copy, Gift, Users, Coins, Share2, Sparkles, CheckCircle2, ChevronRight, Award } from "lucide-react";
+import { 
+  Copy, 
+  Gift, 
+  Users, 
+  Coins, 
+  Share2, 
+  Sparkles, 
+  CheckCircle2, 
+  Award 
+} from "lucide-react";
 
 interface ReferralSystemProps {
   profile: MinerProfile;
@@ -43,7 +52,7 @@ export default function ReferralSystem({
   };
 
   useEffect(() => {
-    // Load existing referrals or generate standard initial mock of real-looking active referrals to show user the system in action
+    // Load existing referrals or generate standard initial mock of real-looking active referrals
     const savedReferrals = localStorage.getItem(getUserKey("ldr_referrals_list"));
     const savedClaimable = localStorage.getItem(getUserKey("ldr_referrals_claimable"));
     const savedClaimed = localStorage.getItem(getUserKey("ldr_referrals_claimed"));
@@ -87,7 +96,6 @@ export default function ReferralSystem({
     if (savedClaimable) {
       setClaimableCommission(parseFloat(savedClaimable));
     } else {
-      // Sum active commissions (e.g. 10000 + 20000 = 30000)
       setClaimableCommission(30000);
       localStorage.setItem(getUserKey("ldr_referrals_claimable"), "30000");
     }
@@ -116,10 +124,7 @@ export default function ReferralSystem({
     playUpgradeSound();
     const claimAmt = claimableCommission;
     
-    // FITUR SIMULASI DEPOSIT TEMAN HANYA SEBAGAI UJI COBA - DANA KLAIM TIDAK MASUK KE SALDO ASET RUPIAH
-    // onAddBalances(0, claimAmt); // Disabled as requested so simulated trial funds aren't added to real assets
-    
-    // Move statistics
+    // MOVE STATISTICS
     const nextClaimed = claimedTotal + claimAmt;
     setClaimedTotal(nextClaimed);
     setClaimableCommission(0);
@@ -170,195 +175,200 @@ export default function ReferralSystem({
   const totalDepositReferrals = referrals.reduce((sum, r) => sum + r.depositAmount, 0);
 
   return (
-    <div id="referral-system-container" className="space-y-6 max-w-5xl mx-auto py-2 font-sans animate-fade-in text-left">
+    <div id="referral-system-container" className="max-w-6xl mx-auto py-2 font-sans animate-fade-in text-left">
       
-      {/* Mega Hero Frame Card */}
-      <div className="bg-gradient-to-br from-[#12192c] via-[#111625] to-[#090b11] border border-amber-500/30 rounded-3xl p-6 md:p-8 relative overflow-hidden shadow-2xl">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/5 rounded-full blur-2xl pointer-events-none" />
+      {/* Full width operations layout */}
+      <div className="w-full space-y-6">
         
-        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 justify-between">
-          <div className="space-y-3 shrink text-center md:text-left">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[10px] md:text-xs font-mono font-bold text-amber-400">
-              <Sparkles size={12} className="animate-pulse" />
-              <span>LDR AFFILIATE PARTNERSHIP SYSTEM</span>
+        {/* Mega Hero Frame Card */}
+        <div className="bg-gradient-to-br from-[#12192c] via-[#111625] to-[#090b11] border border-amber-500/30 rounded-3xl p-6 md:p-8 relative overflow-hidden shadow-2xl">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/5 rounded-full blur-2xl pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col md:flex-row items-center gap-6 justify-between">
+            <div className="space-y-3 shrink text-center md:text-left">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[10px] md:text-xs font-mono font-bold text-amber-400">
+                <Sparkles size={12} className="animate-pulse" />
+                <span>LDR AFFILIATE PARTNERSHIP SYSTEM</span>
+              </div>
+              <h2 className="text-xl md:text-3xl font-black text-white tracking-tight uppercase leading-none">
+                Earn <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300">20% Commissions</span>
+              </h2>
+              <p className="text-xs text-gray-300 max-w-lg leading-relaxed font-normal">
+                Share your custom referral link with partner miners and receive a direct <strong>20% Commission</strong> for any virtual demo gas/credit deposits made by your invited recruits!
+              </p>
             </div>
-            <h2 className="text-xl md:text-3xl font-black text-white tracking-tight uppercase leading-none">
-              Earn <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300">20% Commissions</span>
-            </h2>
-            <p className="text-xs text-gray-300 max-w-lg leading-relaxed font-normal">
-              Share your custom referral link with partner miners and receive a direct <strong>20% Commission</strong> for any virtual demo gas/credit deposits made by your invited recruits!
-            </p>
+
+            <div className="w-20 h-20 md:w-28 md:h-28 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center shrink-0 text-amber-400 shadow-lg animate-bounce animate-duration-3000">
+              <Gift size={44} className="md:size-52" />
+            </div>
           </div>
 
-          <div className="w-20 h-20 md:w-28 md:h-28 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center shrink-0 text-amber-400 shadow-lg animate-bounce animate-duration-3000">
-            <Gift size={44} className="md:size-52" />
+          {/* Action Link Row Frame */}
+          <div className="mt-8 pt-6 border-t border-gray-800/60">
+            <label className="block text-[10px] font-mono uppercase tracking-wider text-amber-500 mb-2 font-bold select-none">
+              🚀 YOUR UNIQUE REFERRAL LINK:
+            </label>
+            <div className="flex flex-col md:flex-row gap-2.5">
+              <div className="grow bg-[#090b10] border border-gray-850 rounded-xl px-4 py-3 text-white flex items-center justify-between font-mono text-xs select-all text-ellipsis overflow-hidden">
+                <span className="truncate text-teal-400 font-semibold">{referralLink}</span>
+              </div>
+              <button
+                id="btn-copy-ref-link"
+                onClick={handleCopyLink}
+                className={`py-3 px-6 rounded-xl text-xs font-bold font-mono tracking-widest uppercase transition flex items-center justify-center gap-2 grow-0 ${
+                  copied
+                    ? "bg-green-500 text-black font-extrabold"
+                    : "bg-gradient-to-r from-amber-500 to-orange-500 text-[#0d0f14] hover:brightness-105 active:scale-95 shadow-md"
+                }`}
+              >
+                {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+                <span>{copied ? "COPIED" : "COPY LINK"}</span>
+              </button>
+            </div>
+            <p className="text-[10px] text-gray-550 font-mono mt-1 px-1">
+              *Links redirect to our central community platform: <a href="https://tewnoxmy.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">https://tewnoxmy.vercel.app/</a>
+            </p>
           </div>
         </div>
 
-        {/* Action Link Row Frame */}
-        <div className="mt-8 pt-6 border-t border-gray-800/60">
-          <label className="block text-[10px] font-mono uppercase tracking-wider text-amber-500 mb-2 font-bold select-none">
-            🚀 YOUR UNIQUE REFERRAL LINK:
-          </label>
-          <div className="flex flex-col md:flex-row gap-2.5">
-            <div className="grow bg-[#090b10] border border-gray-850 rounded-xl px-4 py-3 text-white flex items-center justify-between font-mono text-xs select-all text-ellipsis overflow-hidden">
-              <span className="truncate text-teal-400 font-semibold">{referralLink}</span>
+        {/* Referral Statistics Dash Deck */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          
+          <div className="bg-[#111420] border border-gray-850 rounded-2xl p-4 flex items-center gap-4 shadow-md">
+            <div className="w-11 h-11 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center justify-center shrink-0">
+              <Users size={20} />
             </div>
+            <div>
+              <p className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">Referred Friends</p>
+              <p className="text-lg font-black text-white font-mono leading-none mt-1">
+                {referrals.length} <span className="text-xs text-gray-500 font-normal">MINERS</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-[#111420] border border-gray-850 rounded-2xl p-4 flex items-center gap-4 shadow-md">
+            <div className="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+              <Coins size={20} />
+            </div>
+            <div>
+              <p className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">Recruit Deposit Volume</p>
+              <p className="text-lg font-black text-white font-mono leading-none mt-1">
+                Rp {totalDepositReferrals.toLocaleString("id-ID")}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-[#111420] border border-gray-850 rounded-2xl p-4 flex items-center gap-4 shadow-md">
+            <div className="w-11 h-11 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 flex items-center justify-center shrink-0">
+              <Award size={20} />
+            </div>
+            <div>
+              <p className="text-[10px] font-mono text-gray-400 uppercase tracking-wider font-bold">Total Claimed</p>
+              <p className="text-lg font-black text-[#10b981] font-mono leading-none mt-1">
+                Rp {claimedTotal.toLocaleString("id-ID")}
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Claimable Balance Frame Panel */}
+        <div className="bg-[#111624] border border-emerald-500/30 rounded-2xl p-5 md:p-6 shadow-xl flex flex-col md:flex-row items-center gap-6 justify-between text-left border-dashed">
+          <div className="space-y-1">
+            <span className="text-[10px] font-mono font-bold tracking-wider text-[#10b981] bg-emerald-500/10 px-2.5 py-1 rounded inline-block">
+              CURRENT CLAIMABLE REFERRAL COMMISSION (Sandbox Demo)
+            </span>
+            <h3 className="text-2xl font-black font-mono text-white pt-2.5">
+              Rp {claimableCommission.toLocaleString("id-ID")}
+            </h3>
+            <p className="text-[11px] text-gray-450 leading-relaxed font-normal">
+              Ref commissions are logged upon a referred miner's virtual test gas deposit. <strong className="text-amber-400 font-semibold">*Important: Since recruit registrations and deposits are purely virtual simulations, commission claims do not transfer to real assets.</strong>
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
             <button
-              id="btn-copy-ref-link"
-              onClick={handleCopyLink}
-              className={`py-3 px-6 rounded-xl text-xs font-bold font-mono tracking-widest uppercase transition flex items-center justify-center gap-2 grow-0 ${
-                copied
-                  ? "bg-green-500 text-black font-extrabold"
-                  : "bg-gradient-to-r from-amber-500 to-orange-500 text-[#0d0f14] hover:brightness-105 active:scale-95 shadow-md"
+              type="button"
+              onClick={handleSimulateNewReferral}
+              className="px-4 py-2 bg-gray-900 border border-gray-800 hover:bg-gray-850 text-gray-300 font-semibold font-mono text-[10px] uppercase rounded-xl transition shadow"
+            >
+              🧪 SIMULATE RECRUIT
+            </button>
+            
+            <button
+              type="button"
+              onClick={handleClaimCommission}
+              disabled={claimableCommission <= 0}
+              className={`px-6 py-3.5 rounded-xl font-bold font-mono text-xs uppercase tracking-wider transition shadow-lg ${
+                claimableCommission > 0
+                  ? "bg-gradient-to-r from-emerald-500 to-green-600 hover:brightness-105 active:scale-95 text-black font-extrabold"
+                  : "bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-750"
               }`}
             >
-              {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
-              <span>{copied ? "COPIED" : "COPY LINK"}</span>
+              💰 Claim Commission Free
             </button>
           </div>
-          <p className="text-[10px] text-gray-550 font-mono mt-1 px-1">
-            *Links redirect to our central community platform: <a href="https://tewnoxmy.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">https://tewnoxmy.vercel.app/</a>
-          </p>
-        </div>
-      </div>
-
-      {/* Referral Statistics Dash Deck */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        
-        <div className="bg-[#111420] border border-gray-850 rounded-2xl p-4 flex items-center gap-4 shadow-md">
-          <div className="w-11 h-11 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center justify-center shrink-0">
-            <Users size={20} />
-          </div>
-          <div>
-            <p className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">Referred Friends</p>
-            <p className="text-lg font-black text-white font-mono leading-none mt-1">
-              {referrals.length} <span className="text-xs text-gray-500 font-normal">MINERS</span>
-            </p>
-          </div>
         </div>
 
-        <div className="bg-[#111420] border border-gray-850 rounded-2xl p-4 flex items-center gap-4 shadow-md">
-          <div className="w-11 h-11 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
-            <Coins size={20} />
+        {/* Referral Logs Grid */}
+        <div className="bg-[#111420] border border-gray-850 rounded-2xl p-5 shadow">
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-850">
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
+              <Share2 size={14} className="text-amber-500" />
+              <span>Referral Affiliation Network Logs</span>
+            </h4>
+            <span className="text-[9px] font-mono text-gray-500 bg-[#0d0f14] px-2 py-0.5 rounded border border-gray-850">
+              CONSTANT RATE: 20%
+            </span>
           </div>
-          <div>
-            <p className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">Recruit Deposit Volume</p>
-            <p className="text-lg font-black text-white font-mono leading-none mt-1">
-              Rp {totalDepositReferrals.toLocaleString("id-ID")}
-            </p>
-          </div>
+
+          {referrals.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-xs text-gray-500 italic">No miners referred yet. Distribute your unique link above to register your first partner!</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-gray-850 text-gray-400 text-[10px]">
+                    <th className="py-2.5 font-bold uppercase">Referral ID</th>
+                    <th className="py-2.5 font-bold uppercase">Miner Account</th>
+                    <th className="py-2.5 font-bold uppercase">Enlist Date</th>
+                    <th className="py-2.5 font-bold uppercase text-right">Deposit Volume</th>
+                    <th className="py-2.5 font-bold uppercase text-right text-amber-400">Commission (20%)</th>
+                    <th className="py-2.5 font-bold uppercase text-center">Claim Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-850">
+                  {referrals.map((ref) => (
+                    <tr key={ref.id} className="hover:bg-[#141824]/40 transition duration-150">
+                       <td className="py-3 text-gray-500 font-bold">{ref.id}</td>
+                       <td className="py-3 text-white font-black truncate max-w-[120px]">{ref.username}</td>
+                       <td className="py-3 text-gray-400 text-[11px]">{ref.registeredAt}</td>
+                       <td className="py-3 text-right text-gray-300 font-bold">
+                         Rp {ref.depositAmount.toLocaleString("id-ID")}
+                       </td>
+                       <td className="py-3 text-right text-amber-400 font-extrabold">
+                         Rp {ref.commissionEarned.toLocaleString("id-ID")}
+                       </td>
+                       <td className="py-3 text-center">
+                         <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
+                           ref.status === "active"
+                             ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
+                             : "bg-green-500/10 text-green-500 border border-green-500/20"
+                         }`}>
+                           {ref.status === "active" ? "PENDING DEPOSIT" : "CLAIMED"}
+                         </span>
+                       </td>
+                     </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
-        <div className="bg-[#111420] border border-gray-850 rounded-2xl p-4 flex items-center gap-4 shadow-md">
-          <div className="w-11 h-11 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 flex items-center justify-center shrink-0">
-            <Award size={20} />
-          </div>
-          <div>
-            <p className="text-[10px] font-mono text-gray-400 uppercase tracking-wider font-bold">Total Claimed</p>
-            <p className="text-lg font-black text-[#10b981] font-mono leading-none mt-1">
-              Rp {claimedTotal.toLocaleString("id-ID")}
-            </p>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Claimable Balance Frame Panel */}
-      <div className="bg-[#111624] border border-emerald-500/30 rounded-2xl p-5 md:p-6 shadow-xl flex flex-col md:flex-row items-center gap-6 justify-between text-left">
-        <div className="space-y-1">
-          <span className="text-[10px] font-mono font-bold tracking-wider text-[#10b981] bg-emerald-500/10 px-2.5 py-1 rounded inline-block">
-            CURRENT CLAIMABLE REFERRAL COMMISSION (Sandbox Demo)
-          </span>
-          <h3 className="text-2xl font-black font-mono text-white pt-2.5">
-            Rp {claimableCommission.toLocaleString("id-ID")}
-          </h3>
-          <p className="text-[11px] text-gray-450 leading-relaxed font-normal">
-            Ref commissions are logged upon a referred miner's virtual test gas deposit. <strong className="text-amber-400 font-semibold">*Important: Since recruit registrations and deposits are purely virtual simulations, commission claims do not transfer to real assets.</strong>
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
-          <button
-            type="button"
-            onClick={handleSimulateNewReferral}
-            className="px-4 py-2 bg-gray-900 border border-gray-800 hover:bg-gray-850 text-gray-300 font-semibold font-mono text-[10px] uppercase rounded-xl transition shadow"
-          >
-            🧪 SIMULATE NEW RECRUIT
-          </button>
-          
-          <button
-            type="button"
-            onClick={handleClaimCommission}
-            disabled={claimableCommission <= 0}
-            className={`px-6 py-3.5 rounded-xl font-bold font-mono text-xs uppercase tracking-wider transition shadow-lg ${
-              claimableCommission > 0
-                ? "bg-gradient-to-r from-emerald-500 to-green-600 hover:brightness-105 active:scale-95 text-black font-extrabold"
-                : "bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-750"
-            }`}
-          >
-            💰 Claim Commission Free
-          </button>
-        </div>
-      </div>
-
-      {/* Referral Logs Grid */}
-      <div className="bg-[#111420] border border-gray-850 rounded-2xl p-5 shadow">
-        <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-850">
-          <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-1.5">
-            <Share2 size={14} className="text-amber-500" />
-            <span>Referral Affiliation Network Logs</span>
-          </h4>
-          <span className="text-[9px] font-mono text-gray-500 bg-[#0d0f14] px-2 py-0.5 rounded border border-gray-850">
-            CONSTANT RATE: 20%
-          </span>
-        </div>
-
-        {referrals.length === 0 ? (
-          <div className="py-8 text-center">
-            <p className="text-xs text-gray-500 italic">No miners referred yet. Distribute your unique link above to register your first partner!</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
-              <thead>
-                <tr className="border-b border-gray-850 text-gray-400 text-[10px]">
-                  <th className="py-2.5 font-bold uppercase">Referral ID</th>
-                  <th className="py-2.5 font-bold uppercase">Miner Account</th>
-                  <th className="py-2.5 font-bold uppercase">Enlist Date</th>
-                  <th className="py-2.5 font-bold uppercase text-right">Deposit Volume</th>
-                  <th className="py-2.5 font-bold uppercase text-right text-amber-400">Commission (20%)</th>
-                  <th className="py-2.5 font-bold uppercase text-center">Claim Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-850">
-                {referrals.map((ref) => (
-                  <tr key={ref.id} className="hover:bg-[#141824]/40 transition duration-150">
-                     <td className="py-3 text-gray-500 font-bold">{ref.id}</td>
-                     <td className="py-3 text-white font-black truncate max-w-[120px]">{ref.username}</td>
-                     <td className="py-3 text-gray-400 text-[11px]">{ref.registeredAt}</td>
-                     <td className="py-3 text-right text-gray-300 font-bold">
-                       Rp {ref.depositAmount.toLocaleString("id-ID")}
-                     </td>
-                     <td className="py-3 text-right text-amber-400 font-extrabold">
-                       Rp {ref.commissionEarned.toLocaleString("id-ID")}
-                     </td>
-                     <td className="py-3 text-center">
-                       <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold ${
-                         ref.status === "active"
-                           ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
-                           : "bg-green-500/10 text-green-500 border border-green-500/20"
-                       }`}>
-                         {ref.status === "active" ? "PENDING DEPOSIT" : "CLAIMED"}
-                       </span>
-                     </td>
-                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
 
     </div>

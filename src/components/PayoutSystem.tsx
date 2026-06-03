@@ -57,64 +57,6 @@ interface AccountAlert {
   isRead: boolean;
 }
 
-// Simulated active rolling feed of community withdrawals to keep transaction stats feeling real
-function RunningWithdrawalTicker() {
-  const [ticks, setTicks] = useState([
-    { id: 1, name: "Sultan_Kaltim", amt: "Rp 375,000", method: "GOPAY", ago: "2s ago" },
-    { id: 2, name: "CryptoDrill", amt: "54.0 LDR", method: "USDT TRC-20", ago: "15s ago" },
-    { id: 3, name: "ZekeXMiner", amt: "Rp 150,000", method: "BCA", ago: "32s ago" },
-    { id: 4, name: "NusaCore_Master", amt: "20.0 LDR", method: "DANA", ago: "48s ago" },
-  ]);
-
-  useEffect(() => {
-    const listMiners = ["Sultan_Kaltim", "CryptoDrill", "ZekeXMiner", "NusaCore_Master", "IdMiner_Max", "BorSakti", "GemLuster", "RiauGold_X", "JavaDrill", "BaliOren"];
-    const listMethods = ["DANA", "GOPAY", "OVO", "BCA", "MANDIRI", "USDT TRC-20", "LinkAja"];
-    const interval = setInterval(() => {
-      const rName = listMiners[Math.floor(Math.random() * listMiners.length)];
-      const rMethod = listMethods[Math.floor(Math.random() * listMethods.length)];
-      const baseAmt = Math.floor(Math.random() * 45) + 15;
-      const isLdr = Math.random() > 0.5;
-      const displayAmt = isLdr ? `${baseAmt.toFixed(1)} LDR` : `Rp ${(baseAmt * 12500).toLocaleString("id-ID")}`;
-      
-      setTicks((prev) => {
-        const next = [
-          { id: Date.now(), name: rName, amt: displayAmt, method: rMethod, ago: "Just now" },
-          ...prev.slice(0, 3)
-        ];
-        return next;
-      });
-    }, 4500);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="w-full bg-[#0a0d17] border border-amber-500/10 rounded-2xl p-3 select-none relative overflow-hidden mb-6 flex flex-col md:flex-row md:items-center justify-between gap-3 text-left">
-      <div className="flex items-center gap-2">
-        <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-        </span>
-        <span className="text-[10px] font-mono font-black text-amber-400 uppercase tracking-widest block bg-amber-500/5 border border-amber-500/20 px-2 py-0.5 rounded leading-none">
-          LIVE WITHDRAWAL RUNNING STREAM
-        </span>
-      </div>
-      <div className="flex-1 overflow-hidden h-6 relative">
-        <div className="flex gap-4 md:justify-end whitespace-nowrap text-[11px] font-mono text-gray-400 font-medium">
-          {ticks.map((t, idx) => (
-            <span key={t.id} className="inline-flex items-center gap-1.5 bg-gray-950/70 border border-gray-850 px-3 py-1 rounded-lg">
-              <span className="text-white font-bold">{t.name}</span>
-              <span className="text-yellow-400 font-semibold">{t.amt}</span>
-              <span className="text-gray-500 font-bold">via {t.method}</span>
-              <span className="text-green-400 font-bold text-[9px] uppercase tracking-wider bg-green-500/10 border border-green-500/20 px-1.5 py-0.2 rounded leading-none">SUCCESS</span>
-              <span className="text-[9px] text-[#556]">{idx === 0 ? "Just now" : `${idx * 16}s ago`}</span>
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function PayoutSystem({
   profile,
   deductBalance,
@@ -629,11 +571,6 @@ export default function PayoutSystem({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-5xl mx-auto py-2 font-sans animate-fade-in">
       
-      {/* 0. Continuous Live Running Ticker Widget (Log Transaksi Withdrawal Berjalan) */}
-      <div className="lg:col-span-12">
-        <RunningWithdrawalTicker />
-      </div>
-
       {/* 1. Deposit vs Swap LDR System Section */}
       <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6">
         

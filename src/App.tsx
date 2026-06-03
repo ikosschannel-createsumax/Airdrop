@@ -20,6 +20,7 @@ import PayoutSystem from "./components/PayoutSystem";
 import MarketAnalytics from "./components/MarketAnalytics";
 import AdminPanel from "./components/AdminPanel";
 import ReferralSystem from "./components/ReferralSystem";
+import RunningReferralTicker from "./components/RunningReferralTicker";
 import { setMuteState, getMuteState, playClickSound, playUpgradeSound } from "./utils/audio";
 import { syncUserProfileToFirebase } from "./utils/firebase";
 import { 
@@ -913,6 +914,8 @@ export default function App() {
           </div>
 
         </header>
+
+        <RunningReferralTicker />
 
         <nav className="flex flex-wrap bg-[#141822] border border-gray-850 rounded-2xl p-1.5 gap-2 select-none shadow">
           <button
