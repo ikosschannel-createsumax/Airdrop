@@ -530,6 +530,16 @@ export default function App() {
     saveProfileData(nextProfile);
   };
 
+  const handleUpdateHighScore = (ptsDelta: number) => {
+    if (!profile) return;
+    const nextScore = Math.max(0, profile.highScore + ptsDelta);
+    const nextProfile = {
+      ...profile,
+      highScore: nextScore
+    };
+    saveProfileData(nextProfile);
+  };
+
   // Handle active merge items callbacks (Score triggers, combos, levels)
   const handleActiveMerge = (pointsAdded: number, coinsAdded: number, maxMergedLevel: number) => {
     if (!profile) return;
@@ -1093,6 +1103,7 @@ export default function App() {
             <DiceGame 
               profile={profile}
               onAddBalances={handleAddBalances}
+              onUpdateHighScore={handleUpdateHighScore}
               triggerNotification={triggerNotification}
             />
           )}

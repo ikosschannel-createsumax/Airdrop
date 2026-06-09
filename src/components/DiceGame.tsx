@@ -33,6 +33,7 @@ import { fetchAllUsersFromFirebase } from "../utils/firebase";
 interface DiceGameProps {
   profile: MinerProfile;
   onAddBalances: (ldrDelta: number, rupiahDelta: number) => void;
+  onUpdateHighScore?: (ptsDelta: number) => void;
   triggerNotification: (msg: string) => void;
 }
 
@@ -77,7 +78,7 @@ interface FallingCoin {
   size: number;
 }
 
-export default function DiceGame({ profile, onAddBalances, triggerNotification }: DiceGameProps) {
+export default function DiceGame({ profile, onAddBalances, onUpdateHighScore, triggerNotification }: DiceGameProps) {
   // Sound controls
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
@@ -91,10 +92,18 @@ export default function DiceGame({ profile, onAddBalances, triggerNotification }
   const [isLoadingPlayers, setIsLoadingPlayers] = useState<boolean>(false);
   const [onlineCount, setOnlineCount] = useState<number>(142);
 
+  // 10 Second countdown before automatic roll starts
+  const [countdown, setCountdown] = useState<number | null>(null);
+
   // Matchmaking cinematic waiting states
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [connectStep, setConnectStep] = useState<number>(0);
   const [connectingToName, setConnectingToName] = useState<string>("");
+
+  // Interactive matchmaking steps: Find -> Found -> Confirm Ready -> Wait for opponent ready -> Roll
+  const [playerReady, setPlayerReady] = useState<boolean>(false);
+  const [opponentReady, setOpponentReady] = useState<boolean>(false);
+  const [isWaitingForOpponentReady, setIsWaitingForOpponentReady] = useState<boolean>(false);
 
   // Rolling state
   const [isRolling, setIsRolling] = useState<boolean>(false);
@@ -103,6 +112,22 @@ export default function DiceGame({ profile, onAddBalances, triggerNotification }
   const [gameResult, setGameResult] = useState<'win' | 'lose' | 'tie' | null>(null);
   const [tempMyRoll, setTempMyRoll] = useState<number>(5);
   const [tempOpponentRoll, setTempOpponentRoll] = useState<number>(5);
+
+  // Effect to manage 10 seconds auto roll countdown
+  useEffect(() => {
+    if (countdown === null) return;
+    if (countdown <= 0) {
+      setCountdown(null);
+      handleRollDice();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown(prev => (prev !== null ? prev - 1 : null));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdown, playerReady, opponentReady, isRolling]);
 
   // Win streak counter and high-stakes multiplier reward modifier
   const [winStreak, setWinStreak] = useState<number>(0);
@@ -220,6 +245,9 @@ export default function DiceGame({ profile, onAddBalances, triggerNotification }
     setConnectStep(0);
     setConnectingToName(player.username);
     setSelectedOpponent(null);
+    setPlayerReady(false);
+    setOpponentReady(false);
+    setIsWaitingForOpponentReady(false);
     setGameResult(null);
     setMyRoll(null);
     setOpponentRoll(null);
@@ -459,13 +487,23 @@ export default function DiceGame({ profile, onAddBalances, triggerNotification }
     setOpponentRoll(null);
   };
 
-  // Duel Action
-  const handleCommenceRoll = () => {
-    if (isRolling) return;
-    if (!selectedOpponent) {
-      triggerNotification("⚠️ Pilih lawan main Anda di daftar online terlebih dahulu!");
-      return;
-    }
+  // Cancel / Reset Matchmaking state
+  const handleCancelMatch = () => {
+    playClickSound();
+    setSelectedOpponent(null);
+    setIsConnecting(false);
+    setPlayerReady(false);
+    setOpponentReady(false);
+    setIsWaitingForOpponentReady(false);
+    setGameResult(null);
+    setMyRoll(null);
+    setOpponentRoll(null);
+    setCountdown(null);
+  };
+
+  // 1. CARI LAWAN DUEL DADU - Start Radar Search Matchmaker
+  const handleStartSearch = async () => {
+    if (isRolling || isConnecting || selectedOpponent) return;
 
     const betVal = parseFloat(betAmountStr);
     if (isNaN(betVal) || betVal <= 0) {
@@ -473,7 +511,7 @@ export default function DiceGame({ profile, onAddBalances, triggerNotification }
       return;
     }
 
-    // Check balance validation
+    // Check balance validation upfront prior to starting search
     if (betCurrency === 'ldr') {
       if (profile.ldrBalance < betVal) {
         triggerNotification(`⚠️ Koin LDR Anda tidak cukup! Kurang ${(betVal - profile.ldrBalance).toFixed(2)} LDR.`);
@@ -491,6 +529,115 @@ export default function DiceGame({ profile, onAddBalances, triggerNotification }
       }
       if (betVal < 500) {
         triggerNotification(`⚠️ Batas taruhan Rupiah minimal adalah Rp 500!`);
+        return;
+      }
+    }
+
+    playClickSound();
+
+    // Select opponent dynamically from onlinePlayers pool
+    let candidatePool = [...onlinePlayers];
+    if (candidatePool.length === 0) {
+      candidatePool = [
+        { username: "Sultan_Kaltim", minerTag: "sultan#8812", role: "broker", score: 28500, avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=sultan", isReal: false },
+        { username: "BaliOren_99", minerTag: "baliorentag#1104", role: "driller", score: 24100, avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=baliorentag", isReal: false },
+        { username: "CryptoDrill", minerTag: "cryptodrill#2291", role: "broker", score: 21100, avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=cryptodrill", isReal: false },
+        { username: "CyberDigger", minerTag: "cyberdigger#4004", role: "driller", score: 8400, avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=cyberdigger", isReal: false },
+        { username: "LunaHunter", minerTag: "lunahunter#7722", role: "geologist", score: 3200, avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=lunahunter", isReal: false },
+        { username: "WiraGravel", minerTag: "wira#1029", role: "driller", score: 1450, avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=wira", isReal: false }
+      ];
+    }
+    
+    // Pick random opponent representing real / not-really players
+    const matchOpponent = candidatePool[Math.floor(Math.random() * candidatePool.length)];
+
+    // Setup matchmaking states
+    setIsConnecting(true);
+    setConnectStep(0);
+    setConnectingToName(matchOpponent.username);
+    setSelectedOpponent(null);
+    setPlayerReady(false);
+    setOpponentReady(false);
+    setIsWaitingForOpponentReady(false);
+    setGameResult(null);
+    setMyRoll(null);
+    setOpponentRoll(null);
+
+    // Sequential premium tickers for high-spec feel
+    setTimeout(() => {
+      setConnectStep(1);
+    }, 450);
+
+    setTimeout(() => {
+      setConnectStep(2);
+    }, 950);
+
+    setTimeout(() => {
+      setConnectStep(3);
+    }, 1450);
+
+    // Match connected - opponent found! ("Lawan ditemukan")
+    setTimeout(() => {
+      setSelectedOpponent(matchOpponent);
+      setIsConnecting(false);
+      triggerNotification(`⚔️ Lawan ditemukan: ${matchOpponent.username}! Klik tombol READY di bawah.`);
+      playUpgradeSound();
+    }, 1900);
+  };
+
+  // 2. TOMBOL READY - Player confirms readiness and waits for opponent setup
+  const handleConfirmReady = () => {
+    if (!selectedOpponent || playerReady) return;
+    playClickSound();
+    setPlayerReady(true);
+    setIsWaitingForOpponentReady(true);
+    triggerNotification(`👍 Anda siap! Menunggu lawan bersedia...`);
+
+    // Simulate opponent ready confirmation after delay
+    setTimeout(() => {
+      setOpponentReady(true);
+      setIsWaitingForOpponentReady(false);
+      triggerNotification(`🔥 Lawan READY! Dadu otomatis berputar dalam 10 detik atau klik MULAI PUTAR DADU!`);
+      playPowerupSound();
+      setCountdown(10); // Start 10 seconds automatic countdown
+    }, 1200);
+  };
+
+  // 2.5. REMATCH BUTTON ACTION - Resets readiness to let you play again with same matched player
+  const handleRematch = () => {
+    playClickSound();
+    setPlayerReady(false);
+    setOpponentReady(false);
+    setIsWaitingForOpponentReady(false);
+    setGameResult(null);
+    setMyRoll(null);
+    setOpponentRoll(null);
+    setCountdown(null);
+    triggerNotification(`🔄 Mengajak rematch ${selectedOpponent?.username || "lawan"}! Klik READY saat Anda siap.`);
+  };
+
+  // 3. MULAI PUTAR DADU - Visual dice spin animation
+  const handleRollDice = () => {
+    if (isRolling || !selectedOpponent || !playerReady || !opponentReady) return;
+
+    setCountdown(null); // Cancel automatic countdown if triggered manually
+
+    const betVal = parseFloat(betAmountStr);
+    if (isNaN(betVal) || betVal <= 0) {
+      triggerNotification("⚠️ Nominal taruhan tidak lengkap!");
+      return;
+    }
+
+    // Balance check
+    if (betCurrency === 'ldr') {
+      if (profile.ldrBalance < betVal) {
+        triggerNotification(`⚠️ Koin LDR Anda tidak cukup!`);
+        return;
+      }
+    } else {
+      const rpSum = profile.rupiahBalance || 0;
+      if (rpSum < betVal) {
+        triggerNotification(`⚠️ Saldo Rupiah Anda tidak cukup!`);
         return;
       }
     }
@@ -514,7 +661,6 @@ export default function DiceGame({ profile, onAddBalances, triggerNotification }
     const totalCycles = 18;
 
     const rollTimer = setInterval(() => {
-      // Cycle through random 1 to 9 dice faces
       setTempMyRoll(Math.floor(1 + Math.random() * 9));
       setTempOpponentRoll(Math.floor(1 + Math.random() * 9));
       cycles++;
@@ -522,7 +668,6 @@ export default function DiceGame({ profile, onAddBalances, triggerNotification }
       if (cycles >= totalCycles) {
         clearInterval(rollTimer);
         
-        // Final roll outcomes
         const finalMyRoll = Math.floor(1 + Math.random() * 9);
         const finalOpponentRoll = Math.floor(1 + Math.random() * 9);
 
@@ -541,53 +686,76 @@ export default function DiceGame({ profile, onAddBalances, triggerNotification }
         setGameResult(finalRes);
         synthResultSound(finalRes);
 
-        // Process reward payouts or keep loss
+        // Payouts & Miner Highscore Composition updates
         if (finalRes === 'win') {
-          // Streak dynamics
           const nextStreak = winStreak + 1;
           setWinStreak(nextStreak);
           if (nextStreak > maxStreak) {
             setMaxStreak(nextStreak);
           }
 
-          // Streak Bonus system: 5% bonus per streak level (up to 25% max)
           const bonusPct = Math.min(0.25, nextStreak * 0.05);
           const prizeAmt = betVal * 2;
           const streakBonusVal = betVal * bonusPct;
           const totalPrize = prizeAmt + streakBonusVal;
 
+          const ptsReward = 150 + Math.min(50, nextStreak * 10);
+          onUpdateHighScore?.(ptsReward);
+
           if (betCurrency === 'ldr') {
             onAddBalances(totalPrize, 0);
-            triggerNotification(`🎉 MENANG MUTLAK! Roll [${finalMyRoll}] vs [${finalOpponentRoll}]. +${betVal.toFixed(2)} LDR ditambahkan & streak bonus +${streakBonusVal.toFixed(2)} LDR!`);
+            triggerNotification(`🎉 MENANG MUTLAK! Roll [${finalMyRoll}] vs [${finalOpponentRoll}]. +${betVal.toFixed(2)} LDR & streak bonus +${streakBonusVal.toFixed(2)} LDR! (+${ptsReward} Pts Highscore 🔥)`);
           } else {
             onAddBalances(0, totalPrize);
-            triggerNotification(`🎉 MENANG MUTLAK! Roll [${finalMyRoll}] vs [${finalOpponentRoll}]. +Rp ${betVal.toLocaleString("id-ID")} ditambahkan & streak bonus +Rp ${streakBonusVal.toLocaleString("id-ID")}!`);
+            triggerNotification(`🎉 MENANG MUTLAK! Roll [${finalMyRoll}] vs [${finalOpponentRoll}]. +Rp ${betVal.toLocaleString("id-ID")} & streak bonus +Rp ${streakBonusVal.toLocaleString("id-ID")}! (+${ptsReward} Pts Highscore 🔥)`);
           }
 
           triggerGoldRain();
           playUpgradeSound();
 
         } else if (finalRes === 'tie') {
-          // Refund bet in case of a draw, streak preserved
+          const ptsReward = 20;
+          onUpdateHighScore?.(ptsReward);
+
           if (betCurrency === 'ldr') {
             onAddBalances(betVal, 0);
-            triggerNotification(`🤝 HASIL SERI! Roll sama [${finalMyRoll}]. Dana taruhan dikembalikan.`);
+            triggerNotification(`🤝 HASIL SERI! Roll sama [${finalMyRoll}]. Dana taruhan dikembalikan. (+${ptsReward} Pts Highscore 🤝)`);
           } else {
             onAddBalances(0, betVal);
-            triggerNotification(`🤝 HASIL SERI! Roll sama [${finalMyRoll}]. Dana taruhan dikembalikan.`);
+            triggerNotification(`🤝 HASIL SERI! Roll sama [${finalMyRoll}]. Dana taruhan dikembalikan. (+${ptsReward} Pts Highscore 🤝)`);
           }
         } else {
-          // Lost bet resets streak
           setWinStreak(0);
+          const ptsPenalty = -50;
+          onUpdateHighScore?.(ptsPenalty);
+
           if (betCurrency === 'ldr') {
-            triggerNotification(`💀 KALAH DUEL! Roll kalah [${finalMyRoll}] vs [${finalOpponentRoll}]. Terpotong ${betVal.toFixed(1)} LDR.`);
+            triggerNotification(`💀 KALAH DUEL! Roll kalah [${finalMyRoll}] vs [${finalOpponentRoll}]. Terpotong ${betVal.toFixed(1)} LDR. (-50 Pts Highscore 💀)`);
           } else {
-            triggerNotification(`💀 KALAH DUEL! Roll kalah [${finalMyRoll}] vs [${finalOpponentRoll}]. Terpotong Rp ${betVal.toLocaleString("id-ID")}.`);
+            triggerNotification(`💀 KALAH DUEL! Roll kalah [${finalMyRoll}] vs [${finalOpponentRoll}]. Terpotong Rp ${betVal.toLocaleString("id-ID")}. (-50 Pts Highscore 💀)`);
           }
           playGameOverSound();
         }
 
         setIsRolling(false);
+        
+        // Push this real-time game to bottom stream log!
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        const finalWinnerName = finalRes === 'win' ? (profile.username || "Anda") : (finalRes === 'lose' ? selectedOpponent.username : "SERI (Refund)");
+        const realStreamItem: LiveChallengeLog = {
+          id: Math.random().toString(),
+          time: timeStr,
+          player1: profile.username || "Tamu_Miner",
+          player2: selectedOpponent.username,
+          betType: betCurrency,
+          betAmount: betVal,
+          roll1: finalMyRoll,
+          roll2: finalOpponentRoll,
+          winner: finalWinnerName
+        };
+        
+        setLiveMatches(prevLogs => [realStreamItem, ...prevLogs.slice(0, 6)]);
       }
     }, intervalTime);
   };
@@ -676,315 +844,263 @@ export default function DiceGame({ profile, onAddBalances, triggerNotification }
         </div>
       )}
 
-      {/* Top Banner section */}
-      <div className="bg-gradient-to-r from-red-950/20 via-[#0e1227] to-slate-900 border border-orange-500/20 p-5 rounded-3xl relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl">
-        <div className="absolute top-0 right-0 w-84 h-32 bg-orange-500/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/10 animate-pulse">
-            <Dices size={24} className="text-amber-500 animate-[spin_10s_linear_infinite]" />
-          </div>
-          <div>
-            <h2 className="text-base font-black tracking-wider uppercase font-mono text-white flex items-center gap-2">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300">
-                ARENA DADUTRONIC 9-SISI PREMIUM
-              </span>
-              <span className="bg-red-500/20 text-red-400 border border-red-500/30 text-[9px] px-2 py-0.5 rounded-full font-serif font-black leading-none uppercase animate-pulse">
-                AHG SPEC 🔥
-              </span>
-            </h2>
-            <p className="text-[11px] text-gray-450 mt-1 max-w-lg leading-relaxed">
-              Cyber Arena tanding dadu 1 s.d. 9 dengan peluang setara! Mainkan LDR atau Rupiah Anda, tantang penambang online, dan nikmati bonus berlipat untuk tumpukan kemenangan beruntun!
-            </p>
-          </div>
-        </div>
-
-        {/* Audio control & Win streak Display */}
-        <div className="flex flex-wrap gap-2.5">
-          {winStreak > 0 && (
-            <div className="bg-orange-500/10 border border-orange-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2 animate-bounce">
-              <Flame size={14} className="text-orange-500 animate-pulse fill-orange-500" />
-              <span className="text-[10px] font-mono text-orange-400 font-extrabold uppercase">
-                STREAK: {winStreak}x (+{(winStreak * 5)}%)
-              </span>
-            </div>
-          )}
-
-          <button
-            onClick={() => { playClickSound(); setSoundEnabled(!soundEnabled); }}
-            className={`py-2 px-3 rounded-xl border flex items-center gap-1.5 transition font-mono font-bold text-[10px] uppercase select-none ${
-              soundEnabled 
-                ? "bg-indigo-500/15 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/25" 
-                : "bg-gray-900 text-gray-500 border-gray-800"
-            }`}
-          >
-            {soundEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
-            <span>VOL: {soundEnabled ? "ON" : "MUTED"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* MID PANEL: SIMULATED BACKDROP BOT COMBAT STATS HUB ("SEPERTI HIDUP" ENGINE) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gradient-to-br from-indigo-950/20 to-slate-950 border border-indigo-500/10 p-4 rounded-2xl">
-        <div className="md:col-span-2 flex items-center justify-between border-b border-gray-800 pb-1.5 mb-1">
-          <div className="flex items-center gap-2">
-            <Activity size={14} className="text-orange-400 animate-spin-slow" />
-            <span className="text-[10px] font-mono tracking-widest font-black uppercase text-gray-300">
-              ⚡ LIVE MULTIPLAYER P2P BOT ARENA
-            </span>
-          </div>
-          <span className="text-[9px] font-mono text-indigo-400 font-semibold bg-indigo-500/10 px-2 py-0.5 rounded">
-            SIMULASI LATAR BELAKANG AKTIF
-          </span>
-        </div>
-
-        {botDuels.map((duel) => {
-          const isLdr = duel.betType === 'ldr';
-          return (
-            <div 
-              key={duel.id}
-              className="bg-black/40 border border-gray-900 rounded-xl p-3 flex flex-col justify-between relative overflow-hidden transition-all hover:border-indigo-500/20"
-            >
-              <div className="flex items-center justify-between text-[10px] mb-2 font-mono">
-                <span className="text-gray-400 font-bold block truncate max-w-[130px]">
-                  {duel.p1} vs {duel.p2}
-                </span>
-                <span className={`text-[9px] ${
-                  duel.progress >= 100 ? "text-emerald-400 font-bold" : "text-amber-500 animate-pulse"
-                }`}>
-                  {duel.status}
-                </span>
-              </div>
-
-              {/* Progress Bar of the background simulation */}
-              <div className="w-full bg-gray-950 rounded-full h-1.5 overflow-hidden mb-2">
-                <div 
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    duel.progress >= 100 
-                      ? "bg-emerald-500" 
-                      : isLdr ? "bg-amber-500" : "bg-blue-500"
-                  }`}
-                  style={{ width: `${duel.progress}%` }}
-                />
-              </div>
-
-              <div className="flex items-center justify-between text-[9px] font-mono">
-                <span className="text-gray-500 uppercase">
-                  BET: <strong className={isLdr ? "text-amber-500" : "text-emerald-400"}>
-                    {isLdr ? `${duel.betAmount.toFixed(1)} LDR` : `Rp ${duel.betAmount.toLocaleString("id-ID")}`}
-                  </strong>
-                </span>
-                {duel.progress >= 100 ? (
-                  <span className="text-gray-200">
-                    Roll: <strong className="text-indigo-400">[{duel.roll1}]</strong> vs <strong className="text-amber-400">[{duel.roll2}]</strong>
-                  </span>
-                ) : (
-                  <span className="text-gray-500 italic">mengocok dadu...</span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Main Dual columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left Column: Online Lobby & Matchmaker list */}
-        <div className="lg:col-span-1 bg-[#101422] border border-gray-850 p-5 rounded-2xl flex flex-col h-full justify-between shadow-lg">
-          <div>
-            <div className="flex items-center justify-between mb-4 border-b border-gray-800/40 pb-2">
-              <div className="flex items-center gap-2">
-                <Users size={16} className="text-teal-400 animate-pulse" />
-                <span className="text-xs font-black uppercase font-mono tracking-wider text-white">LOBBY PLAYERS ONLINE</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-teal-500/10 border border-teal-500/20 rounded-full px-2 py-0.5">
-                <span className="w-1.5 h-1.5 bg-teal-400 rounded-full animate-ping" />
-                <span className="text-[10px] font-mono font-bold text-teal-400">{onlineCount} ACTIVE</span>
-              </div>
-            </div>
-
-            <p className="text-[10px] text-gray-400 leading-normal mb-3">
-              Ketuk profile salah satu penambang online di bawah untuk memilih sasaran taruhan tanding:
-            </p>
-
-            {isLoadingPlayers ? (
-              <div className="py-12 text-center text-xs text-gray-500 font-mono">
-                Mengambil data pemain online...
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
-                {onlinePlayers.map((player) => {
-                  const isCurMatchDef = selectedOpponent?.minerTag === player.minerTag;
-                  return (
-                    <button
-                      key={player.minerTag}
-                      onClick={() => handleSelectOpponent(player)}
-                      className={`w-full text-left p-2.5 rounded-xl transition flex items-center justify-between border ${
-                        isCurMatchDef 
-                          ? "bg-amber-500/10 border-amber-500/50 text-white font-semibold"
-                          : "bg-gray-950/45 hover:bg-[#151a2d] border-gray-900 text-gray-400 hover:text-white"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <img 
-                          src={player.avatar} 
-                          alt={player.username} 
-                          className="w-8 h-8 rounded-lg border border-gray-800 shrink-0 bg-[#0d0f14]"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="min-w-0">
-                          <span className={`text-[11px] block truncate font-black tracking-tight ${isCurMatchDef ? "text-amber-400" : "text-white"}`}>
-                            {player.username}
-                          </span>
-                          <span className="text-[9px] font-mono text-gray-500 uppercase">{player.role} • {player.minerTag}</span>
-                        </div>
-                      </div>
-                      <div className="text-right flex flex-col items-end shrink-0">
-                        <span className="text-[9px] font-mono text-gray-400">{player.score.toLocaleString()} Pts</span>
-                        <span className="text-[8px] bg-teal-500/10 text-teal-400 px-1 py-0.2 rounded mt-0.5 leading-none">
-                          ● Online
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <button
-            onClick={() => loadOnlinePlayers()}
-            className="w-full mt-4 bg-gray-950 hover:bg-[#141a2e] border border-gray-800 text-gray-450 hover:text-white py-2 px-3 rounded-xl font-bold font-mono text-[10px] uppercase text-center transition"
-          >
-            REFRESH DAFTAR PEMAIN
-          </button>
-        </div>
-
-
-        {/* Middle/Center Column: Dice rolling stage */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-[#101422] border border-gray-850 p-6 rounded-2xl relative overflow-hidden shadow-lg">
+      {/* Premium Dice Rolling Stage (lobby is hidden for a cleaner focus) */}
+      <div className="w-full max-w-4xl mx-auto">
+        <div className="bg-[#101422] border border-gray-850 p-6 rounded-2xl relative overflow-hidden shadow-lg">
             <div className="absolute top-0 left-0 w-32 h-32 bg-orange-500/5 rounded-full blur-2xl pointer-events-none" />
             
-            <div className="text-center mb-6">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-amber-500 font-extrabold bg-amber-500/10 px-3 py-1 rounded-full">
-                BATTLE ROLL STAGE
-              </span>
-            </div>
-
-            {/* Duel Visual Table block */}
-            <div className="grid grid-cols-2 gap-4 items-center bg-gray-950/80 border border-gray-804/65 p-5 rounded-2xl relative mb-6">
-              
-              {/* VS overlay */}
-              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-black w-9 h-9 rounded-full border-4 border-[#101422] flex items-center justify-center font-mono font-black text-[11px] italic z-30 shadow-lg shadow-amber-500/30">
-                VS
-              </div>
-
-              {/* Side A: You */}
-              <div className="flex flex-col items-center space-y-3.5 pt-2">
-                <div className="flex flex-col items-center">
-                  <div className="relative">
-                    <img 
-                      src={profile.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${profile.username}`} 
-                      alt="Your Avatar" 
-                      className="w-12 h-12 rounded-xl border-2 border-blue-500 bg-[#0d0f14]"
-                      referrerPolicy="no-referrer"
-                    />
-                    <span className="absolute -bottom-1 -right-1 bg-blue-500 text-white text-[8px] font-mono leading-none py-0.5 px-1 rounded-full uppercase font-black">
-                      YOU
-                    </span>
-                  </div>
-                  <span className="text-xs font-black text-white mt-2 limit-text max-w-[120px] block truncate">
-                    {profile.username}
-                  </span>
-                  <span className="text-[9px] font-mono text-gray-500 uppercase">{profile.role}</span>
+            {/* Header with sound trigger and win streak indicator inside the table directly */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-800/60 pb-4 mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-amber-500/10 text-amber-400 border border-amber-500/25 rounded-xl flex items-center justify-center shrink-0 shadow shadow-amber-500/5">
+                  <Dices size={18} className="text-amber-500 rotate-12" />
                 </div>
-
-                {/* Cyber Dice A style */}
-                {renderCyberDice(isRolling ? tempMyRoll : (myRoll || 1), false, isRolling)}
+                <div>
+                  <h2 className="text-xs font-black tracking-wider uppercase font-mono text-white flex items-center gap-2">
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300">
+                      CYBER DADUTRONIC ARENA
+                    </span>
+                    <span className="bg-teal-500/10 text-teal-400 border border-teal-500/30 text-[8px] px-1.5 py-0.5 rounded uppercase font-black">
+                      HD PRO
+                    </span>
+                  </h2>
+                  <p className="text-[9px] text-gray-500 font-mono uppercase mt-0.5">Arena Dadu 1 s.d. 9 Peluang Setara</p>
+                </div>
               </div>
 
-              {/* Side B: Opponent, Matchmaking, or Idle selector */}
-              <div className="flex flex-col items-center justify-center min-h-[190px]">
-                {isConnecting ? (
-                  <div className="flex flex-col items-center justify-center text-center p-3 border border-amber-500/30 rounded-2xl bg-amber-500/[0.03] w-full min-h-[170px] relative overflow-hidden animate-pulse">
-                    <div className="absolute inset-0 bg-gradient-to-t from-transparent via-amber-500/[0.02] to-transparent animate-pulse" />
-                    <div className="w-10 h-10 border-2 border-amber-500/20 border-t-amber-400 rounded-full animate-spin mb-2.5" />
-                    <span className="text-[10px] font-mono text-amber-500 font-extrabold uppercase tracking-widest block leading-none">
-                      MENGHUBUNGKAN...
+              {/* Controls & Mini Streak Box */}
+              <div className="flex items-center gap-2">
+                {winStreak > 0 && (
+                  <div className="bg-orange-500/10 border border-orange-500/35 px-2.5 py-1 rounded-lg flex items-center gap-1.5 animate-pulse shrink-0">
+                    <Flame size={12} className="text-orange-500 fill-orange-500" />
+                    <span className="text-[9px] font-mono text-orange-400 font-extrabold uppercase">
+                      STREAK: {winStreak}x (+{(winStreak * 5)}%)
                     </span>
-                    
-                    {/* Retro Ticker list */}
-                    <div className="mt-3 bg-black/55 border border-indigo-950/40 rounded-lg p-2.5 w-full max-w-[155px] font-mono text-[8px] text-left space-y-1.5 text-gray-400">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-emerald-500 text-[10px]">⮚</span>
-                        <span className="truncate">Sinyal P2P aktif...</span>
-                      </div>
-                      {connectStep >= 1 && (
-                        <div className="flex items-center gap-1.5 text-gray-200 animate-slide-in">
-                          <span className="text-emerald-500 text-[10px]">⮚</span>
-                          <span className="truncate">Duel: {connectingToName}</span>
-                        </div>
-                      )}
-                      {connectStep >= 2 && (
-                        <div className="flex items-center gap-1.5 text-amber-400 animate-slide-in">
-                          <span className="text-amber-500 text-[10px]">⮚</span>
-                          <span className="truncate">Kunci dana bet...</span>
-                        </div>
-                      )}
-                      {connectStep >= 3 && (
-                        <div className="flex items-center gap-1.5 text-teal-400 font-bold tracking-tight animate-slide-in">
-                          <span className="text-teal-400 text-[10px]">⮚</span>
-                          <span className="truncate font-black">Lawan bersiap!</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : selectedOpponent === null ? (
-                  <div className="flex flex-col items-center justify-center text-center p-3 border border-dashed border-gray-800 rounded-2xl bg-gray-950/45 w-full min-h-[170px] relative overflow-hidden">
-                    {/* Pulse circles inside */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="w-24 h-24 border border-indigo-500/5 rounded-full animate-ping" />
-                      <div className="w-14 h-14 border border-indigo-500/10 rounded-full animate-[ping_2s_infinite]" />
-                    </div>
-                    
-                    <div className="w-9 h-9 bg-indigo-500/10 rounded-full flex items-center justify-center border border-indigo-500/20 mb-2 relative z-10 animate-pulse">
-                      <Users size={16} className="text-indigo-400" />
-                    </div>
-                    <span className="text-[10px] font-mono text-indigo-400 font-extrabold uppercase tracking-wider block relative z-10 leading-none">
-                      MENUNGGU LAWAN...
-                    </span>
-                    <p className="text-[9px] text-gray-500 max-w-[145px] inline-block mt-1.5 font-sans leading-relaxed relative z-10">
-                      Ketuk salah satu penambang yang online di lobi sebelah kiri untuk menantang!
-                    </p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center space-y-3.5 pt-1 animate-scale-up w-full">
-                    <div className="flex flex-col items-center">
-                      <div className="relative">
-                        <img 
-                          src={selectedOpponent.avatar || "https://api.dicebear.com/7.x/bottts/svg?seed=fallback"} 
-                          alt="Opponent Avatar" 
-                          className="w-12 h-12 rounded-xl border-2 border-amber-500 bg-[#0d0f14]"
-                          referrerPolicy="no-referrer"
-                        />
-                        <span className="absolute -bottom-1 -right-1 bg-amber-500 text-black text-[8px] font-mono leading-none py-0.5 px-1 rounded-full uppercase font-bold">
-                          FOE
-                        </span>
-                      </div>
-                      <span className="text-xs font-black text-white mt-1 limit-text max-w-[120px] block truncate">
-                        {selectedOpponent.username}
-                      </span>
-                      <span className="text-[9px] font-mono text-gray-500 uppercase">{selectedOpponent.role}</span>
-                    </div>
-
-                    {/* Cyber Dice B style */}
-                    {renderCyberDice(isRolling ? tempOpponentRoll : (opponentRoll || 1), true, isRolling)}
                   </div>
                 )}
-              </div>
 
+                <button
+                  onClick={() => { playClickSound(); setSoundEnabled(!soundEnabled); }}
+                  className={`py-1.5 px-2.5 rounded-lg border flex items-center gap-1 transition font-mono font-bold text-[9px] uppercase select-none ${
+                    soundEnabled 
+                      ? "bg-indigo-500/15 text-indigo-400 border-indigo-500/30 hover:bg-indigo-500/25" 
+                      : "bg-gray-900 text-gray-500 border-gray-800"
+                  }`}
+                >
+                  {soundEnabled ? <Volume2 size={11} /> : <VolumeX size={11} />}
+                  <span>SFX</span>
+                </button>
+              </div>
             </div>
+
+            {/* Duel Area Block */}
+            {isConnecting ? (
+              /* High Definition Holographic fullscreen/container Radar Scanner */
+              <div className="w-full min-h-[290px] bg-[#0c0d1b]/95 border-2 border-orange-500/20 rounded-2xl p-6 relative overflow-hidden flex flex-col items-center justify-center shadow-[0_0_35px_rgba(249,115,22,0.06)] mb-6 animate-scale-up">
+                
+                {/* Radar grid coordinates background */}
+                <div className="absolute inset-0 bg-[linear-gradient(rgba(249,115,22,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(249,115,22,0.02)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none" />
+                <div className="absolute inset-0 bg-radial-gradient(ellipse_at_center,transparent_30%,#0c0d1b_95%) pointer-events-none" />
+                
+                {/* Sonar sweep overlay */}
+                <div className="absolute w-[220px] h-[220px] rounded-full border border-orange-500/10 flex items-center justify-center pointer-events-none">
+                  <div className="absolute w-[160px] h-[160px] rounded-full border border-orange-500/15" />
+                  <div className="absolute w-[100px] h-[100px] rounded-full border border-orange-500/20" />
+                  <div className="absolute w-[50px] h-[50px] rounded-full border border-orange-500/30" />
+                  
+                  {/* Rotating sweep line */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-transparent to-orange-500/20 rounded-full animate-[spin_3s_linear_infinite]" />
+                  
+                  {/* Targeted blips flashing */}
+                  <span className="absolute top-[28%] left-[24%] w-1.5 h-1.5 bg-green-400 rounded-full animate-ping opacity-80" />
+                  <span className="absolute top-[70%] left-[68%] w-2 h-2 bg-amber-400 rounded-full animate-ping opacity-75" />
+                  <span className="absolute top-[16%] left-[76%] w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse opacity-90" />
+                </div>
+
+                <div className="relative z-10 flex flex-col items-center text-center max-w-sm">
+                  {/* Futuristic central hub core */}
+                  <div className="relative mb-4 flex items-center justify-center">
+                    <div className="w-12 h-12 border border-dashed border-orange-500/30 rounded-full animate-[spin_10s_linear_infinite]" />
+                    <div className="absolute w-9 h-9 border-2 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+                    <Swords className="absolute text-orange-500 animate-pulse" size={14} />
+                  </div>
+
+                  <span className="text-[9px] font-mono font-black text-orange-500 bg-orange-500/15 py-0.5 px-2.5 rounded-full uppercase tracking-widest border border-orange-500/25 shadow-[0_0_12px_rgba(249,115,22,0.12)] select-none">
+                    MEMINDAI ARENA MULTIPLAYER P2P
+                  </span>
+                  
+                  <h3 className="text-xs font-extrabold text-white mt-2.5 font-mono">
+                    MENGHUBUNGKAN SALURAN...
+                  </h3>
+                  
+                  <p className="text-[10px] text-gray-400 mt-1 max-w-[270px]">
+                    Mendeteksi server miner aktif dengan kecocokan balance & highscore...
+                  </p>
+
+                  {/* HD Terminal Connections Output */}
+                  <div className="mt-4 bg-black/85 border border-indigo-950/45 rounded-xl p-2.5 w-full font-mono text-[9px] text-left space-y-1 text-gray-500 shadow-inner">
+                    <div className="flex items-center justify-between border-b border-gray-900 pb-1.5 mb-1.5">
+                      <span className="text-gray-500 uppercase text-[8px] font-black">LOG PERHUBUNGAN KONEKSI</span>
+                      <span className="text-emerald-400 text-[8px] animate-pulse">● RADAR ACTIVE</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-gray-400">
+                      <span className="text-emerald-500 text-[9px]">⮚</span>
+                      <span className="truncate">Frekuensi radar miner-lobby online siap...</span>
+                    </div>
+                    {connectStep >= 1 ? (
+                      <div className="flex items-center gap-1.5 text-gray-200 animate-slide-in">
+                        <span className="text-emerald-500 text-[9px]">⮚</span>
+                        <span className="truncate text-orange-400">Target ditemukan: <strong className="text-white bg-orange-500/15 px-1 rounded">{connectingToName}</strong></span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-gray-600 italic">
+                        <span>⮚ mencari sinyal miner sekitar...</span>
+                      </div>
+                    )}
+                    {connectStep >= 2 ? (
+                      <div className="flex items-center gap-1.5 text-amber-500 animate-slide-in">
+                        <span className="text-emerald-500 text-[9px]">⮚</span>
+                        <span className="truncate">Sistem kunci taruhan & penjaminan staking pool...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-gray-600 italic">
+                        <span>⮚ sinkronisasi jaminan koin...</span>
+                      </div>
+                    )}
+                    {connectStep >= 3 ? (
+                      <div className="flex items-center gap-1.5 text-teal-400 font-bold tracking-tight animate-slide-in">
+                        <span className="text-teal-400 text-[9px]">⮚</span>
+                        <span className="truncate font-black">Lawan menyepakati duel dadu!</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-gray-600 italic">
+                        <span>⮚ otorisasi persetujuan tanding...</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Standard Side-by-Side Duel Visual Table block */
+              <div className="grid grid-cols-2 gap-4 items-center bg-gray-950/80 border border-gray-804/65 p-5 rounded-2xl relative mb-6">
+                
+                {/* VS overlay */}
+                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-amber-500 to-orange-500 text-black w-9 h-9 rounded-full border-4 border-[#101422] flex items-center justify-center font-mono font-black text-[11px] italic z-30 shadow-lg shadow-amber-500/30">
+                  VS
+                </div>
+
+                {/* Side A: You */}
+                <div className="flex flex-col items-center space-y-3.5 pt-2">
+                  <div className="flex flex-col items-center">
+                    <div className="relative">
+                      <img 
+                        src={profile.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${profile.username}`} 
+                        alt="Your Avatar" 
+                        className="w-12 h-12 rounded-xl border-2 border-blue-500 bg-[#0d0f14]"
+                        referrerPolicy="no-referrer"
+                      />
+                      <span className="absolute -bottom-1 -right-1 bg-blue-500 text-white text-[8px] font-mono leading-none py-0.5 px-1 rounded-full uppercase font-black">
+                        YOU
+                      </span>
+                    </div>
+                    <span className="text-xs font-black text-white mt-2 limit-text max-w-[120px] block truncate">
+                      {profile.username}
+                    </span>
+                    <span className="text-[9px] font-mono text-gray-500 uppercase">{profile.role}</span>
+                  </div>
+
+                  {/* Cyber Dice A style */}
+                  {renderCyberDice(isRolling ? tempMyRoll : (myRoll || 1), false, isRolling)}
+
+                  <div className="mt-2 text-center h-6">
+                    {selectedOpponent ? (
+                      playerReady ? (
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/35 px-2.5 py-1 rounded-full shadow-[0_0_12px_rgba(16,185,129,0.15)] uppercase">
+                          <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                          READY 👍
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-[9px] font-mono font-bold bg-rose-500/10 text-rose-400 border border-rose-500/25 px-2.5 py-1 rounded-full uppercase">
+                          <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse" />
+                          BELUM READY
+                        </span>
+                      )
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-[9px] font-mono font-extrabold text-gray-600 bg-gray-900 border border-gray-850 px-2.5 py-1 rounded-full uppercase">
+                        WAITING
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Side B: Opponent, Matchmaking, or Idle selector */}
+                <div className="flex flex-col items-center justify-center min-h-[190px]">
+                  {selectedOpponent === null ? (
+                    <div className="flex flex-col items-center justify-center text-center p-3 border border-dashed border-gray-800 rounded-2xl bg-gray-950/45 w-full min-h-[170px] relative overflow-hidden">
+                      {/* Pulse circles inside */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className="w-24 h-24 border border-indigo-500/5 rounded-full animate-ping" />
+                        <div className="w-14 h-14 border border-indigo-500/10 rounded-full animate-[ping_2s_infinite]" />
+                      </div>
+                      
+                      <div className="w-9 h-9 bg-indigo-500/10 rounded-full flex items-center justify-center border border-indigo-500/20 mb-2 relative z-10 animate-pulse">
+                        <Users size={16} className="text-indigo-400" />
+                      </div>
+                      <span className="text-[10px] font-mono text-indigo-400 font-extrabold uppercase tracking-wider block relative z-10 leading-none">
+                        SIAP DUEL DADU!
+                      </span>
+                      <p className="text-[9px] text-gray-500 max-w-[145px] inline-block mt-1.5 font-sans leading-relaxed relative z-10">
+                        Masukkan taruhan Anda dan tekan tombol di bawah untuk mencari lawan!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center space-y-3.5 pt-1 animate-scale-up w-full">
+                      <div className="flex flex-col items-center">
+                        <div className="relative">
+                          <img 
+                            src={selectedOpponent.avatar || "https://api.dicebear.com/7.x/bottts/svg?seed=fallback"} 
+                            alt="Opponent Avatar" 
+                            className="w-12 h-12 rounded-xl border-2 border-amber-500 bg-[#0d0f14]"
+                            referrerPolicy="no-referrer"
+                          />
+                          <span className="absolute -bottom-1 -right-1 bg-amber-500 text-black text-[8px] font-mono leading-none py-0.5 px-1 rounded-full uppercase font-bold">
+                            FOE
+                          </span>
+                        </div>
+                        <span className="text-xs font-black text-white mt-1 limit-text max-w-[120px] block truncate">
+                          {selectedOpponent.username}
+                        </span>
+                        <span className="text-[9px] font-mono text-gray-500 uppercase">{selectedOpponent.role}</span>
+                      </div>
+
+                      {/* Cyber Dice B style */}
+                      {renderCyberDice(isRolling ? tempOpponentRoll : (opponentRoll || 1), true, isRolling)}
+
+                      <div className="mt-2 text-center h-6">
+                        {opponentReady ? (
+                          <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/35 px-2.5 py-1 rounded-full shadow-[0_0_12px_rgba(16,185,129,0.15)] uppercase">
+                            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                            READY 👍
+                          </span>
+                        ) : isWaitingForOpponentReady ? (
+                          <span className="inline-flex items-center gap-1.5 text-[9px] font-mono font-extrabold bg-amber-500/15 text-amber-400 border border-amber-500/35 px-2.5 py-1 rounded-full uppercase animate-pulse">
+                            <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-ping" />
+                            MENUNGGU...
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-[9px] font-mono font-bold bg-rose-500/10 text-rose-420 border border-rose-500/25 px-2.5 py-1 rounded-full uppercase">
+                            <span className="w-1.5 h-1.5 bg-rose-500 rounded-full" />
+                            BELUM READY
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+            )}
 
             {/* Match outcomes banners */}
             {gameResult && !isRolling && (
@@ -1154,27 +1270,85 @@ export default function DiceGame({ profile, onAddBalances, triggerNotification }
                 </div>
               </div>
 
-              {/* Main Submit Button */}
-              <button
-                type="button"
-                onClick={handleCommenceRoll}
-                disabled={isRolling || !selectedOpponent}
-                className="w-full mt-6 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 disabled:from-gray-800 disabled:to-gray-900 disabled:text-gray-505 text-black py-4 px-6 rounded-xl font-black text-xs tracking-widest uppercase flex items-center justify-center gap-2.5 hover:brightness-110 active:scale-98 transition shadow-lg shadow-amber-500/20"
-              >
-                <Swords size={16} />
-                <span>
-                  {isRolling 
-                    ? "SEDANG MEMUTAR DADU..." 
-                    : `PUTAR DADU KLAIM BET (LAWAN ${selectedOpponent?.username?.toUpperCase() || "SESEORANG"})`
+              {/* Dynamic Matchmaking / Readiness / Rolling Game Action Button */}
+              {(() => {
+                if (selectedOpponent && gameResult !== null) {
+                  return (
+                    <div className="mt-6 flex flex-col gap-2.5 w-full">
+                      <button
+                        type="button"
+                        onClick={handleRematch}
+                        className="w-full py-4 px-6 bg-gradient-to-r from-teal-500 via-emerald-500 to-green-500 border border-emerald-500/25 text-white font-black text-xs tracking-widest uppercase rounded-xl flex items-center justify-center gap-2 select-none hover:brightness-110 active:scale-98 transition shadow-lg shadow-emerald-500/15"
+                      >
+                        <RefreshCw size={15} />
+                        <span>AJAK TANDING LAGI (REMATCH) 🔄</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelMatch}
+                        className="w-full py-3 px-4 bg-[#101422] border border-gray-800 hover:border-gray-700 text-gray-400 hover:text-white font-mono text-[10px] font-black uppercase rounded-xl flex items-center justify-center gap-1.5 select-none hover:bg-gray-900 transition-all active:scale-98"
+                      >
+                        🚪 KELUAR MATCH & CARI LAWAN BARU
+                      </button>
+                    </div>
+                  );
+                }
+
+                let buttonAction: () => void | Promise<void> = handleStartSearch;
+                let buttonLabel = "CARI LAWAN DUEL ⚔️";
+                let buttonColorClass = "bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 border border-orange-500/10 text-black shadow-amber-500/10";
+                let isButtonDisabled = isRolling || isConnecting;
+
+                if (isConnecting) {
+                  buttonLabel = "MENCARI LAWAN DUEL...";
+                } else if (selectedOpponent) {
+                  if (!playerReady) {
+                    buttonLabel = "SAYA SIAP! / SETUJUI READY 👍";
+                    buttonAction = handleConfirmReady;
+                    buttonColorClass = "bg-gradient-to-r from-emerald-500 to-teal-500 border border-emerald-500/20 text-white shadow-emerald-500/10";
+                  } else if (isWaitingForOpponentReady) {
+                    buttonLabel = "MENUNGGU LAWAN READY... ⏳";
+                    isButtonDisabled = true;
+                    buttonColorClass = "bg-gray-800 text-gray-500 border border-gray-750";
+                  } else if (playerReady && opponentReady) {
+                    if (isRolling) {
+                      buttonLabel = "SEDANG MEMUTAR DADU... 🎲";
+                      isButtonDisabled = true;
+                      buttonColorClass = "bg-gray-800 text-gray-500 border border-gray-750";
+                    } else {
+                      buttonLabel = countdown !== null ? `MULAI PUTAR DADU 🎲 (AUTO: ${countdown}s)` : "MULAI PUTAR DADU 🎲";
+                      buttonAction = handleRollDice;
+                      buttonColorClass = "bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 border border-orange-500/25 text-white shadow-red-500/15 animate-pulse";
+                    }
                   }
-                </span>
-              </button>
+                }
+
+                return (
+                  <button
+                    type="button"
+                    onClick={buttonAction}
+                    disabled={isButtonDisabled}
+                    className={`w-full mt-6 py-4 px-6 rounded-xl font-black text-xs tracking-widest uppercase flex items-center justify-center gap-2.5 select-none transition-all hover:brightness-110 active:scale-98 shadow-lg ${buttonColorClass} disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    <Swords size={16} />
+                    <span>{buttonLabel}</span>
+                  </button>
+                );
+              })()}
+
+              {selectedOpponent && !isRolling && gameResult === null && (
+                <button
+                  type="button"
+                  onClick={handleCancelMatch}
+                  className="w-full mt-2 bg-slate-950 hover:bg-gray-900 border border-gray-850 text-gray-500 hover:text-white py-3 px-4 rounded-xl font-mono text-[10px] font-black uppercase text-center tracking-wider transition"
+                >
+                  ↩️ CARI LAWAN LAIN / BATALKAN DUEL
+                </button>
+              )}
 
             </div>
           </div>
         </div>
-
-      </div>
 
       {/* Footer Block: Live Activity Log Streams */}
       <div className="bg-[#101422] border border-gray-850 p-5 rounded-2xl shadow-lg">
