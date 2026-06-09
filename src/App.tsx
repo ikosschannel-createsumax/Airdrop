@@ -20,6 +20,7 @@ import PayoutSystem from "./components/PayoutSystem";
 import MarketAnalytics from "./components/MarketAnalytics";
 import AdminPanel from "./components/AdminPanel";
 import ReferralSystem from "./components/ReferralSystem";
+import DiceGame from "./components/DiceGame";
 import RunningReferralTicker from "./components/RunningReferralTicker";
 import { setMuteState, getMuteState, playClickSound, playUpgradeSound } from "./utils/audio";
 import { syncUserProfileToFirebase } from "./utils/firebase";
@@ -38,7 +39,8 @@ import {
   AlertCircle,
   Wallet,
   Activity,
-  Lock
+  Lock,
+  Dices
 } from "lucide-react";
 
 export default function App() {
@@ -48,7 +50,7 @@ export default function App() {
   const [dynamiteCount, setDynamiteCount] = useState<number>(0); // starting tools reset to 0
   const [magnetCount, setMagnetCount] = useState<number>(0);
   const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'merge_game' | 'rigs_automation' | 'stats_shop' | 'payout_system' | 'market_analytics' | 'admin_panel' | 'referral'>('merge_game');
+  const [activeTab, setActiveTab] = useState<'merge_game' | 'rigs_automation' | 'stats_shop' | 'payout_system' | 'market_analytics' | 'admin_panel' | 'referral' | 'dice_game'>('merge_game');
   
   // Admin Panel states
   const [adminQrisMethod, setAdminQrisMethod] = useState<'dynamic' | 'static'>(() => {
@@ -990,6 +992,18 @@ export default function App() {
             <span>🔗 Referral</span>
           </button>
 
+          <button
+            onClick={() => { playClickSound(); setActiveTab("dice_game"); }}
+            className={`flex-1 min-w-[120px] py-3 px-3 rounded-xl text-xs font-black tracking-wider uppercase transition flex items-center justify-center gap-2 ${
+              activeTab === "dice_game"
+                ? "bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-md font-bold"
+                : "text-gray-400 hover:bg-[#1a202c] hover:text-gray-200"
+            }`}
+          >
+            <Dices size={16} className="text-amber-400" />
+            <span>🎲 Arena Dadu</span>
+          </button>
+
           {isAdminUser() && (
             <button
               onClick={() => { playClickSound(); setActiveTab("admin_panel"); }}
@@ -1069,6 +1083,14 @@ export default function App() {
 
           {profile && activeTab === "referral" && (
             <ReferralSystem 
+              profile={profile}
+              onAddBalances={handleAddBalances}
+              triggerNotification={triggerNotification}
+            />
+          )}
+
+          {profile && activeTab === "dice_game" && (
+            <DiceGame 
               profile={profile}
               onAddBalances={handleAddBalances}
               triggerNotification={triggerNotification}
