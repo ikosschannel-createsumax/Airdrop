@@ -138,7 +138,7 @@ export default function LeaderboardAndQuests({
 
   // Generate rival competitor profiles and update their scores dynamically over time
   useEffect(() => {
-    const defaultCompetitors: Competitor[] = [
+    const baseCompetitors: Competitor[] = [
       { rank: 1, username: "Sultan_Kaltim", minerTag: "sultan#8812", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=sultan", role: "driller", score: 28500, ldrBalance: 14450 },
       { rank: 2, username: "BaliOren_99", minerTag: "baliorentag#1104", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=baliorentag", role: "broker", score: 24100, ldrBalance: 8120 },
       { rank: 3, username: "CryptoDrill", minerTag: "cryptodrill#2291", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=cryptodrill", role: "broker", score: 21100, ldrBalance: 6120 },
@@ -174,15 +174,58 @@ export default function LeaderboardAndQuests({
       { rank: 33, username: "MegaMining_ID", minerTag: "megamining#1234", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=megamining", role: "driller", score: 190, ldrBalance: 15 },
       { rank: 34, username: "CryptoSrikandi", minerTag: "cryptosrikandi#77", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=srikandi", role: "geologist", score: 150, ldrBalance: 10 },
       { rank: 35, username: "WiraPertambangan", minerTag: "wira#1029", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=wira", role: "driller", score: 110, ldrBalance: 5 },
-      { rank: 36, username: "Sultan_Madura", minerTag: "sultanmadura#9999", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=sultanmadura", role: "broker", score: 80, ldrBalance: 2 }
+      { rank: 36, username: "Sultan_Madura", minerTag: "sultanmadura#9999", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=sultanmadura", role: "broker", score: 80, ldrBalance: 2 },
+      { rank: 37, username: "xRayMiner_99", minerTag: "xrayminer#9901", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=xrayminer", role: "driller", score: 75, ldrBalance: 2 },
+      { rank: 38, username: "FusionQueen", minerTag: "fusionqueen#1023", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=fusionqueen", role: "broker", score: 72, ldrBalance: 1 },
+      { rank: 39, username: "CyberDigger", minerTag: "cyberdigger#4004", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=cyberdigger", role: "driller", score: 68, ldrBalance: 1 },
+      { rank: 40, username: "AstroBoy", minerTag: "astroboy#8822", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=astroboy", role: "broker", score: 65, ldrBalance: 1 },
+      { rank: 41, username: "CryptoLord", minerTag: "cryptolord#9090", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=cryptolord", role: "geologist", score: 62, ldrBalance: 1 },
+      { rank: 42, username: "GigaMiner", minerTag: "gigaminer#1122", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=gigaminer", role: "driller", score: 58, ldrBalance: 1 },
+      { rank: 43, username: "KoinStar", minerTag: "koinstar#3344", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=koinstar", role: "broker", score: 55, ldrBalance: 1 },
+      { rank: 44, username: "BlockMaster", minerTag: "blockmaster#5511", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=blockmaster", role: "geologist", score: 52, ldrBalance: 1 },
+      { rank: 45, username: "LunaHunter", minerTag: "lunahunter#7722", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=lunahunter", role: "driller", score: 48, ldrBalance: 1 }
     ];
+
+    const extraSeedNames = [
+      "RigProtector", "DrillStar", "KoinAceh", "GravelHunter", "SaktiRig", "IndoGold",
+      "JavaCore", "BetaExcavator", "BaliGold", "TenggerMiner", "SumatraDigger", "SoloGems",
+      "BanyuwangiGravel", "SemarangDigger", "GoldVoxel", "RigMaster_RI", "CirebonExcavator",
+      "MedanExcavator", "BorneoGoliath", "SundaStone", "WiraGravel", "SemeruDriller",
+      "HackerCoin", "DiggerKing", "Sultan_Ambon", "MakassarGold", "ManadoMiner", "RajaGravel",
+      "CoinCatcher", "BlockRider", "DiggingBro", "EliteDriller", "KoinBandung", "GemWira",
+      "AstroMiner", "RigGlory", "MerdekaDigger", "IndoExcavator", "CryptoWira", "GemsSultan"
+    ];
+
+    const defaultCompetitors: Competitor[] = [...baseCompetitors];
+    let currentScore = 45;
+    for (let i = defaultCompetitors.length; i < 144; i++) {
+      const seedName = extraSeedNames[i % extraSeedNames.length];
+      const suffixNum = 10 + (i % 90);
+      const username = `${seedName}_${suffixNum}`;
+      currentScore = Math.max(1, currentScore - (i % 2 === 0 ? 1 : 0));
+      defaultCompetitors.push({
+        rank: i + 1,
+        username,
+        minerTag: `${seedName.toLowerCase()}#${4000 + i}`,
+        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
+        role: i % 3 === 0 ? "driller" : i % 3 === 1 ? "broker" : "geologist",
+        score: currentScore,
+        ldrBalance: 1
+      });
+    }
 
     // Load persisted leaderboard data
     let currentComps = defaultCompetitors;
     const cached = localStorage.getItem("ldr_leaderboard_competitors");
     if (cached) {
       try {
-        currentComps = JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        // Ensure we always have at least 144 competitors even if cached is smaller
+        if (Array.isArray(parsed) && parsed.length >= 144) {
+          currentComps = parsed;
+        } else {
+          currentComps = defaultCompetitors;
+        }
       } catch (e) {
         currentComps = defaultCompetitors;
       }
