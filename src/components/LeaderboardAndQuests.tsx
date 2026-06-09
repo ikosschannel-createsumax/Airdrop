@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from "react";
 import { Achievement, MinerProfile } from "../types";
 import { playClickSound, playUpgradeSound } from "../utils/audio";
-import { Award, CheckCircle, Gift, Bomb, Zap, Sparkles, Clock, Globe } from "lucide-react";
+import { Award, CheckCircle, Gift, Bomb, Zap, Sparkles, Clock, Globe, Calendar } from "lucide-react";
 
 interface LeaderboardAndQuestsProps {
   profile: MinerProfile;
@@ -61,6 +61,52 @@ export default function LeaderboardAndQuests({
     return localStorage.getItem(key) === "true";
   });
 
+  const [lastCheckIn, setLastCheckIn] = useState<number | null>(() => {
+    const key = profile.minerTag ? `ldr_last_checkin_${profile.minerTag}` : "ldr_last_checkin";
+    const val = localStorage.getItem(key);
+    return val ? parseInt(val, 10) : null;
+  });
+
+  const [timeLeftSec, setTimeLeftSec] = useState<number>(0);
+
+  useEffect(() => {
+    const updateTimer = () => {
+      if (!lastCheckIn) {
+        setTimeLeftSec(0);
+        return;
+      }
+      const elapsed = Date.now() - lastCheckIn;
+      const left = Math.max(0, (24 * 60 * 60 * 1000) - elapsed);
+      setTimeLeftSec(Math.ceil(left / 1000));
+    };
+
+    updateTimer();
+    const timer = setInterval(updateTimer, 1000);
+    return () => clearInterval(timer);
+  }, [lastCheckIn]);
+
+  const canCheckIn = !lastCheckIn || (Date.now() - lastCheckIn >= 24 * 60 * 60 * 1000);
+
+  const handleDailyCheckIn = () => {
+    if (!canCheckIn) return;
+    playUpgradeSound();
+    onAddBalances(1, 0); // Give exactly 1 LDR Coin (non-multiplying)
+    const now = Date.now();
+    setLastCheckIn(now);
+    const key = profile.minerTag ? `ldr_last_checkin_${profile.minerTag}` : "ldr_last_checkin";
+    localStorage.setItem(key, now.toString());
+    if (triggerNotification) {
+      triggerNotification("🎁 Daily Check-in Berhasil! +1 koin LDR dimasukkan ke saldo pertambangan Anda.");
+    }
+  };
+
+  const formatTimeLeft = (totalSeconds: number): string => {
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return `${h}j ${m}m ${s}d`;
+  };
+
   const handleClaimChannelReward = () => {
     if (tgChannelClaimed) return;
     playUpgradeSound();
@@ -92,13 +138,42 @@ export default function LeaderboardAndQuests({
   // Generate rival competitor profiles and update their scores dynamically over time
   useEffect(() => {
     const defaultCompetitors: Competitor[] = [
-      { rank: 1, username: "Sultan_Kaltim", minerTag: "sultan#8812", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=sultan", role: "driller", score: 18500, ldrBalance: 12450 },
-      { rank: 2, username: "CryptoDrill", minerTag: "cryptodrill#2291", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=cryptodrill", role: "broker", score: 12100, ldrBalance: 6120 },
-      { rank: 3, username: "ZekeXMiner", minerTag: "zekex#4492", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=zekex", role: "geologist", score: 9800, ldrBalance: 3220 },
-      { rank: 4, username: "NusaCore_Master", minerTag: "nusacore#5561", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=nusa", role: "driller", score: 7150, ldrBalance: 1180 },
-      { rank: 5, username: "IdMiner_Max", minerTag: "idminer#9902", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=idminermax", role: "broker", score: 4300, ldrBalance: 980 },
-      { rank: 6, username: "BorSakti", minerTag: "borsakti#1032", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=borsakti", role: "geologist", score: 2800, ldrBalance: 450 },
-      { rank: 7, username: "GemLuster", minerTag: "gemluster#7705", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=gemluster", role: "broker", score: 1200, ldrBalance: 180 }
+      { rank: 1, username: "Sultan_Kaltim", minerTag: "sultan#8812", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=sultan", role: "driller", score: 28500, ldrBalance: 14450 },
+      { rank: 2, username: "BaliOren_99", minerTag: "baliorentag#1104", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=baliorentag", role: "broker", score: 24100, ldrBalance: 8120 },
+      { rank: 3, username: "CryptoDrill", minerTag: "cryptodrill#2291", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=cryptodrill", role: "broker", score: 21100, ldrBalance: 6120 },
+      { rank: 4, username: "RiauGold_X", minerTag: "riaugold#1182", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=riaugold", role: "geologist", score: 19800, ldrBalance: 5220 },
+      { rank: 5, username: "JavaDrill_Station", minerTag: "javadrill#4089", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=javadrill", role: "driller", score: 17150, ldrBalance: 4180 },
+      { rank: 6, username: "ZekeXMiner", minerTag: "zekex#4492", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=zekex", role: "geologist", score: 14300, ldrBalance: 3220 },
+      { rank: 7, username: "NusaCore_Master", minerTag: "nusacore#5561", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=nusa", role: "driller", score: 11150, ldrBalance: 2480 },
+      { rank: 8, username: "SundaDigger_42", minerTag: "sundadigger#4288", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=sundadigger", role: "geologist", score: 9850, ldrBalance: 1990 },
+      { rank: 9, username: "BorneoGravel", minerTag: "borneogravel#8420", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=borneogravel", role: "driller", score: 8700, ldrBalance: 1540 },
+      { rank: 10, username: "IdMiner_Max", minerTag: "idminer#9902", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=idminermax", role: "broker", score: 7300, ldrBalance: 1280 },
+      { rank: 11, username: "AcehGas_99", minerTag: "acehgas#9914", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=acehgas", role: "broker", score: 6200, ldrBalance: 1110 },
+      { rank: 12, username: "CyberAura_Miner", minerTag: "cyberaura#3001", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=cyberaura", role: "driller", score: 5500, ldrBalance: 980 },
+      { rank: 13, username: "BorSakti", minerTag: "borsakti#1032", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=borsakti", role: "geologist", score: 4800, ldrBalance: 850 },
+      { rank: 14, username: "IndoGold_99", minerTag: "indogold#9910", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=indogold", role: "broker", score: 4100, ldrBalance: 760 },
+      { rank: 15, username: "VoxelGamer_X", minerTag: "voxelgamer#7411", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=voxelgamer", role: "driller", score: 3400, ldrBalance: 610 },
+      { rank: 16, username: "GemLuster", minerTag: "gemluster#7705", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=gemluster", role: "broker", score: 2800, ldrBalance: 480 },
+      { rank: 17, username: "IndoMiner_99", minerTag: "indominer#6612", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=indominer", role: "driller", score: 2200, ldrBalance: 390 },
+      { rank: 18, username: "PlutoDrill", minerTag: "plutodrill#5544", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=plutodrill", role: "geologist", score: 1800, ldrBalance: 290 },
+      { rank: 19, username: "GemShine_HQ", minerTag: "gemshine#9012", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=gemshine", role: "broker", score: 1400, ldrBalance: 210 },
+      { rank: 20, username: "SundaGold_Drill", minerTag: "sundagold#3341", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=sundagold", role: "geologist", score: 1100, ldrBalance: 150 },
+      { rank: 21, username: "AlphaDigger_77", minerTag: "alphadigger#7799", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=alphadigger", role: "driller", score: 950, ldrBalance: 120 },
+      { rank: 22, username: "SumatraRig_Pro", minerTag: "sumatrarig#4411", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=sumatrarig", role: "driller", score: 850, ldrBalance: 110 },
+      { rank: 23, username: "Sultan_Sulawesi", minerTag: "sultansul#9982", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=sultansul", role: "broker", score: 780, ldrBalance: 95 },
+      { rank: 24, username: "PapuaGravel", minerTag: "papuagravel#1201", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=papuagravel", role: "geologist", score: 710, ldrBalance: 82 },
+      { rank: 25, username: "HackerMiner_99", minerTag: "hackerminer#1337", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=hackerminer", role: "driller", score: 650, ldrBalance: 70 },
+      { rank: 26, username: "PecintaKoin_88", minerTag: "pecintakoin#8800", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=pecintakoin", role: "broker", score: 580, ldrBalance: 65 },
+      { rank: 27, username: "BocahMining_02", minerTag: "bocahmining#0022", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=bocahmining", role: "geologist", score: 520, ldrBalance: 50 },
+      { rank: 28, username: "SuraBayaDriller", minerTag: "surabayadrill#6011", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=surabayadrill", role: "driller", score: 480, ldrBalance: 45 },
+      { rank: 29, username: "BandungGems", minerTag: "bandunggems#4021", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=bandunggems", role: "broker", score: 410, ldrBalance: 38 },
+      { rank: 30, username: "RajaEmas_Core", minerTag: "rajaemas#7711", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=rajaemas", role: "geologist", score: 350, ldrBalance: 30 },
+      { rank: 31, username: "LDR_HypeTrain", minerTag: "ldrhypetrain#9900", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=ldrhypetrain", role: "driller", score: 300, ldrBalance: 25 },
+      { rank: 32, username: "GarudaMiner_RI", minerTag: "garudaminer#1945", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=garudaminer", role: "broker", score: 240, ldrBalance: 20 },
+      { rank: 33, username: "MegaMining_ID", minerTag: "megamining#1234", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=megamining", role: "driller", score: 190, ldrBalance: 15 },
+      { rank: 34, username: "CryptoSrikandi", minerTag: "cryptosrikandi#77", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=srikandi", role: "geologist", score: 150, ldrBalance: 10 },
+      { rank: 35, username: "WiraPertambangan", minerTag: "wira#1029", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=wira", role: "driller", score: 110, ldrBalance: 5 },
+      { rank: 36, username: "Sultan_Madura", minerTag: "sultanmadura#9999", avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=sultanmadura", role: "broker", score: 80, ldrBalance: 2 }
     ];
 
     // Load persisted leaderboard data
@@ -261,6 +336,56 @@ export default function LeaderboardAndQuests({
         >
           🛒 EMERGENCY ITEM SHOP
         </button>
+      </div>
+
+      {/* Cool Daily Check-in Deck Widget */}
+      <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent border border-amber-500/25 rounded-2xl p-4.5 mb-6 flex flex-col md:flex-row items-center justify-between gap-4 text-left shadow-sm relative overflow-hidden animate-fade-in">
+        <div className="absolute top-0 right-0 w-36 h-36 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
+        
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 shadow-inner">
+            <Calendar size={24} className={canCheckIn ? "animate-bounce text-amber-400" : "text-gray-500"} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-black text-white tracking-wide font-sans">
+                DAILY MINING CHECK-IN
+              </h4>
+              <span className="bg-amber-500/20 text-amber-400 font-mono text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-full">
+                +1 LDR COIN
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-400 mt-0.5 font-sans leading-relaxed">
+              Mendorong keaktifan harian Anda! Klaim bonus harian gratis non-kelipatan sekali setiap 24 jam.
+            </p>
+          </div>
+        </div>
+
+        <div className="shrink-0 w-full md:w-auto flex flex-col sm:flex-row md:flex-col items-stretch sm:items-center md:items-end justify-center gap-2.5">
+          {canCheckIn ? (
+            <button
+              onClick={handleDailyCheckIn}
+              className="py-2.5 px-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs font-mono tracking-wider rounded-xl transition duration-200 active:scale-95 shadow-md uppercase flex items-center justify-center gap-2"
+            >
+              <Gift size={15} />
+              <span>CLAIM FREE BONUS NOW</span>
+            </button>
+          ) : (
+            <div className="flex flex-col items-center md:items-end justify-center w-full">
+              <button
+                disabled
+                className="py-2.5 px-6 bg-gray-900 border border-gray-800 text-gray-500 font-bold text-xs font-mono tracking-wider rounded-xl uppercase flex items-center justify-center gap-2 cursor-not-allowed w-full"
+              >
+                <Clock size={14} />
+                <span>LOCKED FOR TODAY</span>
+              </button>
+              <span className="text-[10px] text-gray-500 font-mono mt-1.5 flex items-center gap-1">
+                <span>Next claim in:</span>
+                <span className="text-amber-400 font-bold font-mono">{formatTimeLeft(timeLeftSec)}</span>
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* RENDER TAB CONTENTS */}

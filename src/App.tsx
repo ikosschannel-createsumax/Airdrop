@@ -1049,6 +1049,7 @@ export default function App() {
           {activeTab === "payout_system" && (
             <PayoutSystem 
               profile={profile}
+              rigs={rigs}
               deductBalance={handleDeductBalance}
               deductRupiahBalance={handleDeductRupiahBalance}
               onAddBalances={handleAddBalances}

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { MinerProfile } from "../types";
+import { MinerProfile, MiningRig } from "../types";
 import { playClickSound, playUpgradeSound } from "../utils/audio";
 import { createDepositRequestInFirebase } from "../utils/firebase";
 import { 
@@ -20,11 +20,13 @@ import {
   Check, 
   ShieldAlert, 
   RefreshCw,
-  Trash2
+  Trash2,
+  Lock
 } from "lucide-react";
 
 interface PayoutSystemProps {
   profile: MinerProfile;
+  rigs?: MiningRig[];
   deductBalance: (amount: number) => void;
   deductRupiahBalance: (amount: number) => void;
   onAddBalances: (ldrDelta: number, rupiahDelta: number) => void;
@@ -59,6 +61,7 @@ interface AccountAlert {
 
 export default function PayoutSystem({
   profile,
+  rigs = [],
   deductBalance,
   deductRupiahBalance,
   onAddBalances,
@@ -100,6 +103,12 @@ export default function PayoutSystem({
   // Simulated rates
   const RATE_RP_PER_LDR = 12500; // Rp 12,500
   const RATE_USDT_PER_LDR = 0.85; // 0.85 USDT
+
+  const totalCompletedDeposits = transactions
+    .filter((tx) => tx.method.toUpperCase().includes("DEPOSIT") && tx.status === "completed")
+    .reduce((sum, tx) => sum + (tx.amountRupiah || 0), 0);
+  const ownerHasRigs = rigs && rigs.some((r) => r.count > 0);
+  const isFreeUser = !ownerHasRigs && totalCompletedDeposits <= 0;
 
   const handleDepositRupiah = (e: React.FormEvent) => {
     e.preventDefault();
@@ -312,26 +321,7 @@ export default function PayoutSystem({
         console.error("Failed to load transactions list.", e);
       }
     } else {
-      const initialTx: TransactionRecord[] = [
-        {
-          id: "TX-991823",
-          timestamp: new Date(Date.now() - 365 * 60000 * 24).toISOString(),
-          method: "E-Wallet (GOPAY)",
-          destination: "0812****8821",
-          amountLdr: 30,
-          amountFiatCurrency: "Rp 375,000",
-          status: "completed"
-        },
-        {
-          id: "TX-987102",
-          timestamp: new Date(Date.now() - 600 * 60000).toISOString(),
-          method: "Crypto (USDT TRC-20)",
-          destination: "TWhq...881aPX",
-          amountLdr: 15,
-          amountFiatCurrency: "12.75 USDT",
-          status: "completed"
-        }
-      ];
+      const initialTx: TransactionRecord[] = [];
       setTransactions(initialTx);
       localStorage.setItem(getUserKey("ldr_miner_transactions"), JSON.stringify(initialTx));
     }
@@ -412,15 +402,14 @@ export default function PayoutSystem({
     e.preventDefault();
     playClickSound();
 
-    const totalDeposit = transactions
-      .filter((tx) => tx.method.toUpperCase().includes("DEPOSIT") && (tx.status === "completed" || tx.status === "pending"))
+    const totalCompletedDeposits = transactions
+      .filter((tx) => tx.method.toUpperCase().includes("DEPOSIT") && tx.status === "completed")
       .reduce((sum, tx) => sum + (tx.amountRupiah || 0), 0);
+    const ownerHasRigs = rigs && rigs.some((r) => r.count > 0);
+    const isFreeUser = !ownerHasRigs && totalCompletedDeposits <= 0;
 
-    const hasAccess = totalDeposit > 0 || (profile.rupiahBalance && profile.rupiahBalance > 0);
-
-    if (!hasAccess) {
-      triggerNotification("⚠️ Drill account requires at least 1 verified deposit to construct withdrawals.");
-      setShowNoDepositModal(true);
+    if (isFreeUser) {
+      triggerNotification("❌ Akses Penarikan Ditolak: Akun Anda adalah akun gratis. Anda wajib memiliki minimal satu mesin pertambangan atau deposit!");
       return;
     }
 
@@ -761,8 +750,8 @@ export default function PayoutSystem({
                   TOP UP RUPIAH AMOUNT:
                 </label>
                 
-                <div className="grid grid-cols-4 gap-2 mb-3">
-                  {["10000", "25000", "50000", "100000"].map((preset) => (
+                <div className="grid grid-cols-3 gap-2 mb-3">
+                  {["25000", "50000", "100000"].map((preset) => (
                     <button
                       key={preset}
                       type="button"

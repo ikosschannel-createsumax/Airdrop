@@ -14,7 +14,8 @@ import {
   Share2, 
   Sparkles, 
   CheckCircle2, 
-  Award 
+  Award,
+  ShieldAlert
 } from "lucide-react";
 
 interface ReferralSystemProps {
@@ -66,7 +67,7 @@ export default function ReferralSystem({
       const initialReferrals: ReferralRecord[] = [
         {
           id: "REF-4019",
-          username: "xRayMiner_99",
+          username: "(percobaan) xRayMiner_99",
           registeredAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
           depositAmount: 50000,
           commissionEarned: 10000, // 20%
@@ -74,7 +75,7 @@ export default function ReferralSystem({
         },
         {
           id: "REF-7810",
-          username: "FusionQueen",
+          username: "(percobaan) FusionQueen",
           registeredAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
           depositAmount: 100000,
           commissionEarned: 20000, // 20%
@@ -82,7 +83,7 @@ export default function ReferralSystem({
         },
         {
           id: "REF-1192",
-          username: "CyberDigger",
+          username: "(percobaan) CyberDigger",
           registeredAt: new Date().toISOString().split("T")[0],
           depositAmount: 25000,
           commissionEarned: 5000, // 20%
@@ -145,7 +146,7 @@ export default function ReferralSystem({
   const handleSimulateNewReferral = () => {
     playClickSound();
     const usernames = ["AstroBoy", "CryptoLord", "GigaMiner", "KoinStar", "BlockMaster", "LunaHunter"];
-    const selectedUsername = usernames[Math.floor(Math.random() * usernames.length)] + "_" + Math.floor(10 + Math.random() * 90);
+    const selectedUsername = "(percobaan) " + usernames[Math.floor(Math.random() * usernames.length)] + "_" + Math.floor(10 + Math.random() * 90);
     
     // Random deposit (Rp 25.000 / Rp 50.000 / Rp 100.000)
     const depositPresets = [25000, 50000, 100000];
@@ -169,7 +170,9 @@ export default function ReferralSystem({
     setClaimableCommission(nextClaimable);
     localStorage.setItem(getUserKey("ldr_referrals_claimable"), nextClaimable.toString());
 
-    triggerNotification(`🔔 New Referral! ${selectedUsername} deposited Rp ${randDeposit.toLocaleString("id-ID")}. A 20% commission (Rp ${commEarned.toLocaleString("id-ID")}) has been added to your claimable balance.`);
+    // Do NOT add Rp 5,000 cash reward for simulated (percobaan) referrals as per user request.
+
+    triggerNotification(`🔔 New Referral! ${selectedUsername} joined. [SIMULASI] Komisi referral virtual Rp ${commEarned.toLocaleString("id-ID")} ditambahkan ke komisi klaim (Saldo tunai riil tidak bertambah demi ketertiban simulasi).`);
   };
 
   const totalDepositReferrals = referrals.reduce((sum, r) => sum + r.depositAmount, 0);
@@ -192,10 +195,11 @@ export default function ReferralSystem({
                 <span>LDR AFFILIATE PARTNERSHIP SYSTEM</span>
               </div>
               <h2 className="text-xl md:text-3xl font-black text-white tracking-tight uppercase leading-none">
-                Earn <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300">20% Commissions</span>
+                Get <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500 font-extrabold">Rp 5.000 Free Cash</span> + <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-300">20% Commission</span>
               </h2>
-              <p className="text-xs text-gray-300 max-w-lg leading-relaxed font-normal">
-                Share your custom referral link with partner miners and receive a direct <strong>20% Commission</strong> for any virtual demo gas/credit deposits made by your invited recruits!
+              <p className="text-xs text-gray-300 max-w-lg leading-relaxed font-normal flex flex-col gap-1">
+                <span>🎁 Dapatkan bonus saldo langsung sebesar <strong>Rp 5.000 Cash</strong> ditambahkan seketika ke dompet utama Anda untuk setiap rekan yang mendaftar melalui tautan Anda!</span>
+                <span>📈 Selain itu, terima komisi tambahan <strong>Komisi 20%</strong> dari setiap deposit gas/kredit demo yang diproses oleh downline Anda secara otomatis.</span>
               </p>
             </div>
 
@@ -226,9 +230,16 @@ export default function ReferralSystem({
                 <span>{copied ? "COPIED" : "COPY LINK"}</span>
               </button>
             </div>
-            <p className="text-[10px] text-gray-550 font-mono mt-1 px-1">
-              *Links redirect to our central community platform: <a href="https://tewnoxmy.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">https://tewnoxmy.vercel.app/</a>
-            </p>
+            <div className="mt-3 bg-red-500/10 border border-red-500/25 rounded-xl p-3 flex items-start gap-2 text-left">
+              <ShieldAlert size={15} className="text-red-500 shrink-0 mt-0.5 animate-pulse" />
+              <p className="text-[11px] text-gray-300 leading-relaxed font-sans">
+                <strong className="text-red-400 font-mono text-xs block mb-0.5 uppercase">⚠️ SISTEM KEAMANAN AFFILIATE: DETEKSI FRAUD AKTIF</strong>
+                Dilarang keras melakukan kecurangan seperti mengundang diri sendiri (self-referral), membuat akun klon (cloning), bot, atau memanipulasi pendaftaran rekan kerja. Akun penipu akan <strong>diblokir secara permanen tanpa pemberitahuan</strong>! 
+                <span className="text-gray-400 block mt-1.5 font-mono text-[10px] sm:text-[11px] border-t border-gray-800/60 pt-1">
+                  *Central community platform redirect: <a href="https://tewnoxmy.vercel.app/" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline font-bold">https://tewnoxmy.vercel.app/</a>
+                </span>
+              </p>
+            </div>
           </div>
         </div>
 
