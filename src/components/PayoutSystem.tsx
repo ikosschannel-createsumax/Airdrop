@@ -83,6 +83,7 @@ export default function PayoutSystem({
   const [destinationAccount, setDestinationAccount] = useState<string>("");
   const [withdrawAmount, setWithdrawAmount] = useState<string>("");
   const [withdrawSource] = useState<'ldr' | 'rupiah'>('ldr');
+  const [showWithdrawPortal, setShowWithdrawPortal] = useState<boolean>(false);
 
   // Deposit & Swap states
   const [depositAmount, setDepositAmount] = useState<string>("25000");
@@ -914,224 +915,28 @@ export default function PayoutSystem({
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 bg-[#0d0f14] p-1.5 rounded-xl border border-gray-850 mb-5">
-            <button
-              onClick={() => handleMethodChange('ewallet')}
-              className={`py-2 px-1 rounded-lg text-xs font-bold transition flex flex-col items-center justify-center gap-1.5 ${
-                payoutMethod === "ewallet"
-                  ? "bg-amber-500 text-black font-extrabold shadow-md"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              <Wallet size={16} />
-              <span>E-Wallet</span>
-            </button>
-
-            <button
-              onClick={() => handleMethodChange('bank')}
-              className={`py-2 px-1 rounded-lg text-xs font-bold transition flex flex-col items-center justify-center gap-1.5 ${
-                payoutMethod === "bank"
-                  ? "bg-amber-500 text-black font-extrabold shadow-md"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              <Landmark size={16} />
-              <span>Bank Transfer</span>
-            </button>
-
-            <button
-              onClick={() => handleMethodChange('crypto')}
-              className={`py-2 px-1 rounded-lg text-xs font-bold transition flex flex-col items-center justify-center gap-1.5 ${
-                payoutMethod === "crypto"
-                  ? "bg-amber-500 text-black font-extrabold shadow-md"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              <Coins size={16} />
-              <span>USDT Token (TRC)</span>
-            </button>
-          </div>
-
-          <form onSubmit={handleWithdrawClaim} className="space-y-4">
-            
-            <div className="grid grid-cols-2 gap-3 bg-[#0d0f14] p-3 rounded-xl border border-gray-850">
-              <div className="text-left">
-                <span className="text-[9px] font-mono text-gray-500 block uppercase font-bold">SOURCE PAYOUT FUND:</span>
-                <span className="text-xs font-semibold text-white mt-1 block truncate">
-                  {withdrawSource === 'ldr' ? "LDR Mined Coins Pool" : "Rupiah Rewards Balance"}
-                </span>
-              </div>
-              <div className="text-right border-l border-gray-850 pl-3">
-                <span className="text-[9px] font-mono text-gray-500 block uppercase font-bold">DESTINATION PIER:</span>
-                <span className="text-xs font-bold text-amber-400 mt-1 block uppercase">
-                  {payoutMethod} ({selectedProvider})
-                </span>
-              </div>
+          <div className="mt-8 flex flex-col items-center justify-center p-6 bg-gradient-to-br from-[#1c223c]/50 to-[#0c0f17] border border-amber-500/20 rounded-2xl text-center relative overflow-hidden animate-fade-in">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="w-16 h-16 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full flex items-center justify-center mb-4 shadow-inner">
+              <Coins size={30} className="animate-bounce text-amber-400" />
             </div>
 
-            <div>
-              <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1.5 font-medium">
-                CHOOSE RECIPIENT ENDPOINT PROVIDER:
-              </label>
-              {payoutMethod === "ewallet" && (
-                <div className="grid grid-cols-4 gap-2">
-                  {["DANA", "GOPAY", "OVO", "ShopeePay"].map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => { playClickSound(); setSelectedProvider(p); }}
-                      className={`py-2 px-1.5 rounded-lg text-[10px] font-bold font-mono transition text-center ${
-                        selectedProvider === p
-                          ? "bg-amber-500 text-black border border-amber-400 font-extrabold"
-                          : "bg-gray-950 text-gray-400 hover:text-white border border-gray-850"
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {payoutMethod === "bank" && (
-                <div className="grid grid-cols-4 gap-2">
-                  {["BCA", "MANDIRI", "BNI", "BRI"].map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => { playClickSound(); setSelectedProvider(p); }}
-                      className={`py-2 px-1.5 rounded-lg text-[10px] font-bold font-mono transition text-center ${
-                        selectedProvider === p
-                          ? "bg-amber-500 text-black border border-amber-400 font-extrabold"
-                          : "bg-gray-950 text-gray-400 hover:text-white border border-gray-850"
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {payoutMethod === "crypto" && (
-                <div className="grid grid-cols-2 gap-2 text-left">
-                  {["USDT (TRC-20)", "USDC (TRC-20)"].map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => { playClickSound(); setSelectedProvider(p); }}
-                      className={`py-2 px-2.5 rounded-lg text-[10px] font-bold font-mono transition ${
-                        selectedProvider === p
-                          ? "bg-amber-500 text-black border border-amber-400 font-extrabold"
-                          : "bg-gray-950 text-gray-400 hover:text-white border border-gray-850"
-                      }`}
-                    >
-                      💎 {p}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1.5 font-medium">
-                  {withdrawSource === 'ldr' ? "WITHDRAW LDR QUANTITY:" : "WITHDRAW RUPIAH NOMINAL:"}
-                </label>
-                <div className="relative rounded-lg shadow-sm">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-amber-500 font-mono text-xs">
-                    {withdrawSource === 'ldr' ? "🪙" : "Rp"}
-                  </div>
-                  <input
-                    type="number"
-                    value={withdrawAmount}
-                    onChange={(e) => setWithdrawAmount(e.target.value)}
-                    placeholder={withdrawSource === 'ldr' ? "Min. 20 LDR" : "Min. Rp 10k"}
-                    min={withdrawSource === 'ldr' ? "20" : "10000"}
-                    className="w-full bg-[#0d0f14] border border-gray-770 rounded-lg pl-9 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 font-mono text-xs font-semibold"
-                  />
-                  {withdrawSource === 'ldr' && (
-                    <button 
-                      type="button" 
-                      onClick={() => setWithdrawAmount(Math.floor(profile.ldrBalance).toString())}
-                      className="absolute inset-y-1.5 right-1.5 bg-[#171c2c] hover:bg-gray-800 text-amber-400 border border-gray-750 font-mono font-bold text-[9px] uppercase px-2 rounded"
-                    >
-                      MAX
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1.5 font-medium">
-                  RECIPIENT ROUTING ACCOUNT / ADDR:
-                </label>
-                <input
-                  type="text"
-                  value={destinationAccount}
-                  onChange={(e) => setDestinationAccount(e.target.value)}
-                  placeholder={
-                    payoutMethod === "crypto" 
-                      ? "Enter TRC-20 Wallet address" 
-                      : payoutMethod === "ewallet" 
-                        ? "Enter E-Wallet mobile number" 
-                        : "Enter Bank routing account numbers"
-                  }
-                  className="w-full bg-[#0d0f14] border border-gray-770 rounded-lg py-2.5 px-3.5 text-white placeholder-gray-500 focus:outline-none focus:border-amber-500 font-mono text-xs"
-                />
-              </div>
-            </div>
-
-            {withdrawAmount && !isNaN(parseFloat(withdrawAmount)) && parseFloat(withdrawAmount) > 0 && (
-              <div className="p-3 bg-amber-500/5 border border-amber-500/25 rounded-xl space-y-1.5 text-xs font-mono animate-fade-in text-left">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Yield Withdrawn:</span>
-                  <span className="text-white font-bold">
-                    {withdrawSource === 'ldr'
-                      ? `${parseFloat(withdrawAmount).toFixed(1)} LDR`
-                      : `Rp ${parseFloat(withdrawAmount).toLocaleString("id-ID")}`
-                    }
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Processing Gas Fee:</span>
-                  <span className="text-green-400 font-bold">0% (CORE FREE)</span>
-                </div>
-                <div className="h-px bg-gray-800" />
-                <div className="flex justify-between text-sm">
-                  <span className="text-amber-400 font-bold">Total Expected Net Proceeds:</span>
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-green-400 font-black">
-                    {payoutMethod === "crypto" 
-                      ? withdrawSource === 'ldr'
-                        ? `${(parseFloat(withdrawAmount) * RATE_USDT_PER_LDR).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
-                        : `${((parseFloat(withdrawAmount) / RATE_RP_PER_LDR) * RATE_USDT_PER_LDR).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
-                      : withdrawSource === 'ldr'
-                        ? `Rp ${(parseFloat(withdrawAmount) * RATE_RP_PER_LDR).toLocaleString("id-ID")}`
-                        : `Rp ${parseFloat(withdrawAmount).toLocaleString("id-ID")}`
-                    }
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="p-3.5 bg-gray-950/70 border border-gray-850 rounded-xl flex items-start gap-2 text-[11px] leading-snug text-gray-400 text-left">
-              <AlertTriangle size={15} className="text-amber-400 shrink-0 mt-0.5" />
-              <span>
-                {withdrawSource === 'ldr' ? (
-                  <span>Minimum payout core target is <strong>20 LDR COINS</strong>. Blockchain processing transactions run seamlessly via our fast queue protocol.</span>
-                ) : (
-                  <span>Minimum payout core target is <strong>Rp 10,000</strong>. Your bonus fusion cash is dispatched safely straight into your selected mobile e-wallet or bank router.</span>
-                )}
-              </span>
-            </div>
+            <h4 className="text-sm font-black text-white uppercase tracking-wider font-mono">
+              PORTAL PENARIKAN SECURE CORRIDOR
+            </h4>
+            <p className="text-[11px] text-gray-400 mt-2 max-w-sm leading-relaxed">
+              Tekan tombol di bawah untuk membuka portal penarikan asset eksternal dengan tampilan yang bersih, fokus, dan dienkripsi ssl 256-bit demi kelancaran transfer Anda.
+            </p>
 
             <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-black py-3 px-6 rounded-xl font-black text-xs tracking-wider uppercase flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition"
+              type="button"
+              onClick={() => { playUpgradeSound(); setShowWithdrawPortal(true); }}
+              className="mt-5 w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:brightness-110 text-black py-4 px-6 rounded-xl font-black text-xs tracking-widest uppercase flex items-center justify-center gap-2.5 transition active:scale-98 shadow-lg shadow-amber-500/10"
             >
-              <span>SUBMIT WITHDRAWAL REQUISITION</span>
+              <span>BUKA PORTAL TARIK ASET</span>
               <ArrowUpRight size={16} />
             </button>
-
-          </form>
+          </div>
         </div>
 
         {/* Local Payout Transaction logs list */}
@@ -1309,6 +1114,313 @@ export default function PayoutSystem({
         </div>
 
       </div>
+
+      {showWithdrawPortal && (
+        <div className="fixed inset-0 bg-[#07090e] z-[9999] flex flex-col animate-fade-in text-white select-none overflow-y-auto">
+          {/* Top header navigation */}
+          <div className="border-b border-gray-850 bg-[#0b0e14]/90 backdrop-blur-md sticky top-0 z-50">
+            <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center text-amber-400">
+                  <Coins size={20} className="animate-spin-slow" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-black tracking-wider uppercase font-mono text-white flex items-center gap-1.5">
+                    <span>LDR COIN - DIRECT PAYOUT SECURITIES</span>
+                    <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] px-2 py-0.5 rounded-full font-sans tracking-normal leading-none font-extrabold uppercase">
+                      SECURED ENDPOINT
+                    </span>
+                  </h2>
+                  <p className="text-[10px] text-gray-500 font-mono">Ledger Router: v4.22-SSL • Verified Secure Channel</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { playClickSound(); setShowWithdrawPortal(false); }}
+                className="py-2 px-4.5 bg-gray-950 hover:bg-gray-901 border border-gray-800 text-gray-300 font-bold text-xs font-mono uppercase rounded-xl transition active:scale-95"
+              >
+                KEMBALI KE GAME
+              </button>
+            </div>
+          </div>
+
+          {/* Main content body */}
+          <div className="max-w-3xl mx-auto w-full px-4 py-8 flex-1 flex flex-col justify-center">
+            <div className="bg-[#0c0f17] border border-gray-850 rounded-3xl p-6 md:p-8 shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl pointer-events-none" />
+              
+              <div className="text-center max-w-xl mx-auto mb-8">
+                <span className="text-[10px] font-mono tracking-widest font-extrabold uppercase text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full mb-3 inline-block">
+                  DIRECT ASSET DISPATCH PORTAL
+                </span>
+                <h3 className="text-2xl font-black text-white uppercase tracking-tight">
+                  TAMPILAN PENARIKAN BERSIH
+                </h3>
+                <p className="text-xs text-gray-400 mt-2 leading-relaxed">
+                  Konversikan koin LDR hasil pertambangan Anda secara instan dan aman. Layanan otomatis kami terhubung langsung dengan sistem e-wallet and perbankan utama Indonesia.
+                </p>
+              </div>
+
+              {/* Balance Box */}
+              <div className="grid grid-cols-2 gap-4 bg-[#07090e] border border-gray-850 p-4 rounded-2xl mb-8">
+                <div className="text-left border-r border-gray-850/60 pr-2">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase block tracking-wider">SALDO LDR PERTAMBANGAN:</span>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="text-lg font-black font-mono text-amber-500">
+                      🪙 {profile.ldrBalance.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 3 })} LDR
+                    </span>
+                  </div>
+                </div>
+                <div className="text-left pl-3">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase block tracking-wider font-semibold">REWARD CASH RUPIAH:</span>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="text-lg font-black font-mono text-emerald-400">
+                      Rp {(profile.rupiahBalance || 0).toLocaleString("id-ID")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Selector */}
+              <div className="mb-6">
+                <label className="block text-[10.5px] text-left font-mono uppercase tracking-wider text-gray-400 mb-2 font-black">
+                  PILIH METHOD PAYOUT:
+                </label>
+                <div className="grid grid-cols-3 gap-3 bg-[#07090e] p-1 rounded-2xl border border-gray-850">
+                  <button
+                    onClick={() => handleMethodChange('ewallet')}
+                    className={`py-3 px-2 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-1.5 ${
+                      payoutMethod === "ewallet"
+                        ? "bg-amber-500 text-black font-black shadow-md"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    <Wallet size={16} />
+                    <span>E-Wallet</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleMethodChange('bank')}
+                    className={`py-3 px-2 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-1.5 ${
+                      payoutMethod === "bank"
+                        ? "bg-amber-500 text-black font-black shadow-md"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    <Landmark size={16} />
+                    <span>Bank Transfer</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleMethodChange('crypto')}
+                    className={`py-3 px-2 rounded-xl text-xs font-bold transition flex flex-col items-center justify-center gap-1.5 ${
+                      payoutMethod === "crypto"
+                        ? "bg-amber-500 text-black font-black shadow-md font-sans"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    <Coins size={16} />
+                    <span>USDT (TRC-20)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Provider Router */}
+              <div className="mb-6 text-left animate-fade-in">
+                <label className="block text-[10.5px] font-mono uppercase tracking-wider text-gray-400 mb-2 font-black">
+                  PILIH ENDPOINT PROVIDER / BANK:
+                </label>
+                {payoutMethod === "ewallet" && (
+                  <div className="grid grid-cols-4 gap-2.5">
+                    {["DANA", "GOPAY", "OVO", "ShopeePay"].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => { playClickSound(); setSelectedProvider(p); }}
+                        className={`py-2.5 px-1.5 rounded-xl text-xs font-bold font-mono transition text-center ${
+                          selectedProvider === p
+                            ? "bg-[#171c2c] text-amber-400 border-2 border-amber-500"
+                            : "bg-[#07090e] text-gray-400 hover:text-white border border-gray-850"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {payoutMethod === "bank" && (
+                  <div className="grid grid-cols-4 gap-2.5">
+                    {["BCA", "MANDIRI", "BNI", "BRI"].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => { playClickSound(); setSelectedProvider(p); }}
+                        className={`py-2.5 px-1.5 rounded-xl text-xs font-bold font-mono transition text-center ${
+                          selectedProvider === p
+                            ? "bg-[#171c2c] text-amber-400 border-2 border-amber-500"
+                            : "bg-[#07090e] text-gray-400 hover:text-white border border-gray-850"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {payoutMethod === "crypto" && (
+                  <div className="grid grid-cols-2 gap-3.5">
+                    {["USDT (TRC-20)", "USDC (TRC-20)"].map((p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => { playClickSound(); setSelectedProvider(p); }}
+                        className={`py-2.5 px-4 rounded-xl text-xs font-bold font-mono transition flex items-center justify-center gap-2 ${
+                          selectedProvider === p
+                            ? "bg-[#171c2c] text-amber-400 border-2 border-amber-500"
+                            : "bg-[#07090e] text-gray-400 hover:text-white border border-gray-850"
+                        }`}
+                      >
+                        💎 {p}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Input details inside forms */}
+              <form onSubmit={(e) => {
+                const totalCompletedDeposits = transactions
+                  .filter((tx) => tx.method.toUpperCase().includes("DEPOSIT") && tx.status === "completed")
+                  .reduce((sum, tx) => sum + (tx.amountRupiah || 0), 0);
+                const ownerHasRigs = rigs && rigs.some((r) => r.count > 0);
+                const isFreeUser = !ownerHasRigs && totalCompletedDeposits <= 0;
+
+                if (isFreeUser) {
+                  triggerNotification("❌ Akses Penarikan Ditolak: Anda wajib memiliki minimal satu mesin pertambangan atau deposit!");
+                  setShowWithdrawPortal(false);
+                  return;
+                }
+                
+                handleWithdrawClaim(e);
+                
+                // Close portal upon valid inputs
+                const amt = parseFloat(withdrawAmount);
+                if (withdrawAmount && !isNaN(amt) && amt > 0 && destinationAccount.trim()) {
+                  setShowWithdrawPortal(false);
+                }
+              }} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-left">
+                  <div>
+                    <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1.5 font-black">
+                      {withdrawSource === 'ldr' ? "NOMINAL PENARIKAN (LDR COIN):" : "NOMINAL PENARIKAN (RUPIAH):"}
+                    </label>
+                    <div className="relative rounded-2xl shadow-sm">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-amber-500 font-mono text-xs">
+                        {withdrawSource === 'ldr' ? "🪙" : "Rp"}
+                      </div>
+                      <input
+                        type="number"
+                        value={withdrawAmount}
+                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                        placeholder={withdrawSource === 'ldr' ? "Min. 20 LDR" : "Min. Rp 10.000"}
+                        min={withdrawSource === 'ldr' ? "20" : "10000"}
+                        className="w-full bg-[#07090e] border border-gray-850 rounded-2xl pl-10 pr-20 py-3.5 text-white placeholder-gray-650 focus:outline-none focus:border-amber-500 font-mono text-xs font-semibold focus:ring-1 focus:ring-amber-500/25"
+                      />
+                      {withdrawSource === 'ldr' && (
+                        <button 
+                          type="button" 
+                          onClick={() => setWithdrawAmount(Math.floor(profile.ldrBalance).toString())}
+                          className="absolute inset-y-2 right-2 bg-[#171c2c] hover:bg-gray-800 text-amber-400 border border-gray-750 font-mono font-bold text-[9px] uppercase px-3 rounded-lg"
+                        >
+                          MAX
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 mb-1.5 font-black">
+                      NOMOR REKENING / ACCOUNT TUJUAN:
+                    </label>
+                    <input
+                      type="text"
+                      value={destinationAccount}
+                      onChange={(e) => setDestinationAccount(e.target.value)}
+                      placeholder={
+                        payoutMethod === "crypto" 
+                          ? "Masukkan alamat USDT TRC-20" 
+                          : payoutMethod === "ewallet" 
+                            ? "Masukkan nomor HP E-Wallet" 
+                            : "Masukkan nomor rekening bank"
+                      }
+                      className="w-full bg-[#07090e] border border-gray-850 rounded-2xl py-3.5 px-4 text-white placeholder-gray-650 focus:outline-none focus:border-amber-500 font-mono text-xs focus:ring-1 focus:ring-amber-500/25"
+                    />
+                  </div>
+                </div>
+
+                {/* Live Estimator details */}
+                {withdrawAmount && !isNaN(parseFloat(withdrawAmount)) && parseFloat(withdrawAmount) > 0 && (
+                  <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl space-y-2 text-xs font-mono animate-fade-in text-left">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Total Koin Ditarik:</span>
+                      <span className="text-white font-bold font-mono">
+                        {withdrawSource === 'ldr'
+                          ? `${parseFloat(withdrawAmount).toFixed(1)} LDR`
+                          : `Rp ${parseFloat(withdrawAmount).toLocaleString("id-ID")}`
+                        }
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Security Fee & Gas Jaringan:</span>
+                      <span className="text-emerald-400 font-bold">Rupiah 0 (BEBAS BIAYA ADMIN)</span>
+                    </div>
+                    <div className="h-px bg-gray-850" />
+                    <div className="flex justify-between text-sm pt-0.5">
+                      <span className="text-amber-400 font-bold">Total Dana Bersih Diterima:</span>
+                      <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400 font-black">
+                        {payoutMethod === "crypto" 
+                          ? withdrawSource === 'ldr'
+                            ? `${(parseFloat(withdrawAmount) * RATE_USDT_PER_LDR).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
+                            : `${((parseFloat(withdrawAmount) / RATE_RP_PER_LDR) * RATE_USDT_PER_LDR).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDT`
+                          : withdrawSource === 'ldr'
+                            ? `Rp ${(parseFloat(withdrawAmount) * RATE_RP_PER_LDR).toLocaleString("id-ID")}`
+                            : `Rp ${parseFloat(withdrawAmount).toLocaleString("id-ID")}`
+                        }
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Important Notice */}
+                <div className="p-4 bg-gray-950/80 border border-gray-850 rounded-2xl flex items-start gap-3 text-[11px] leading-snug text-gray-400 text-left">
+                  <AlertTriangle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                  <span>
+                    Metode penarikan direct transfer memerlukan waktu validasi hingga maksimal 10 detik. Pastikan nomor tujuan yang dimasukkan valid untuk ketertiban rute pengiriman dana.
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3.5 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => { playClickSound(); setShowWithdrawPortal(false); }}
+                    className="py-3 bg-gray-900 hover:bg-gray-855 text-gray-450 hover:text-white font-bold text-xs font-mono uppercase tracking-wider rounded-2xl border border-gray-800 transition active:scale-95"
+                  >
+                    BATALKAN
+                  </button>
+                  <button
+                    type="submit"
+                    className="bg-gradient-to-r from-amber-500 to-orange-500 hover:brightness-110 text-black py-3 px-6 rounded-2xl font-black text-xs tracking-wider uppercase flex items-center justify-center gap-2 transition active:scale-95 shadow-lg shadow-amber-500/10"
+                  >
+                    <span>KIRIM PERMINTAAN TRANSFER</span>
+                    <ArrowUpRight size={16} />
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showNoDepositModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[9999] animate-fade-in">

@@ -7,6 +7,7 @@ import React, { useState, useEffect } from "react";
 import { Achievement, MinerProfile } from "../types";
 import { playClickSound, playUpgradeSound } from "../utils/audio";
 import { Award, CheckCircle, Gift, Bomb, Zap, Sparkles, Clock, Globe, Calendar } from "lucide-react";
+import { fetchAllUsersFromFirebase } from "../utils/firebase";
 
 interface LeaderboardAndQuestsProps {
   profile: MinerProfile;
@@ -271,6 +272,66 @@ export default function LeaderboardAndQuests({
       clearInterval(cleanInterval);
     };
   }, []);
+
+  // Load and merge real users from Firebase to keep the live leaderboard updated
+  useEffect(() => {
+    let active = true;
+    const fetchAndMergeUsers = async () => {
+      try {
+        const firebaseUsers = await fetchAllUsersFromFirebase();
+        if (!active) return;
+        
+        // Filter out current user's profile from list to avoid double additions
+        const realCompetitors: Competitor[] = firebaseUsers
+          .filter(user => user.minerTag && user.minerTag !== profile.minerTag)
+          .map(user => ({
+            rank: 0,
+            username: user.username,
+            minerTag: user.minerTag,
+            avatar: user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`,
+            role: user.role || "driller",
+            score: user.highScore || 0,
+            ldrBalance: Math.floor(user.ldrBalance || 0)
+          }));
+
+        setCompetitors((prev) => {
+          // Identify tags from firebase
+          const firebaseTags = new Set(realCompetitors.map(c => c.minerTag));
+          
+          // Filter previous list to remove matching tags, so we keep freshest data
+          const filteredPrev = prev.filter(c => !firebaseTags.has(c.minerTag));
+          
+          const combined = [...realCompetitors, ...filteredPrev];
+          
+          // Deduplicate just in case
+          const seen = new Set<string>();
+          const deduped: Competitor[] = [];
+          for (const item of combined) {
+            if (!seen.has(item.minerTag)) {
+              seen.add(item.minerTag);
+              deduped.push(item);
+            }
+          }
+          
+          // Sort by score
+          deduped.sort((a, b) => b.score - a.score);
+          
+          localStorage.setItem("ldr_leaderboard_competitors", JSON.stringify(deduped));
+          return deduped;
+        });
+      } catch (err) {
+        console.error("Failed to load real users for leaderboard:", err);
+      }
+    };
+
+    fetchAndMergeUsers();
+    // Poll every 10 seconds to sync new scores and public registered player changes
+    const fetchInterval = setInterval(fetchAndMergeUsers, 10000);
+    return () => {
+      active = false;
+      clearInterval(fetchInterval);
+    };
+  }, [profile.minerTag]);
 
   const getLeaderboardRanks = (): Competitor[] => {
     const userCompetitor: Competitor = {
