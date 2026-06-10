@@ -43,7 +43,8 @@ import {
   Activity,
   Lock,
   Dices,
-  User
+  User,
+  MessageSquare
 } from "lucide-react";
 
 export default function App() {
@@ -58,6 +59,7 @@ export default function App() {
   // Custom Edit Profile & Step-by-Step Guide modals
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
   const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
+  const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   
   // Admin Panel states
   const [adminQrisMethod, setAdminQrisMethod] = useState<'dynamic' | 'static'>(() => {
@@ -937,6 +939,19 @@ export default function App() {
               <span className="hidden sm:inline font-bold font-mono text-[10px] tracking-wider">EDIT PROFIL</span>
             </button>
 
+            {/* Chatroom Group / Obrolan (Garis 3) Button Link */}
+            <button 
+              onClick={() => { playClickSound(); setIsChatOpen(!isChatOpen); }}
+              className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/30 text-orange-400 hover:bg-orange-500/20 hover:border-orange-400/50 transition shadow flex items-center gap-1.5 relative"
+              title="Obrolan Group Penambang LDR (Garis 3)"
+            >
+              <MessageSquare size={15} />
+              <span className="hidden sm:inline font-bold font-mono text-[10px] tracking-wider font-bold">OBROLAN</span>
+              <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[8px] font-black h-4 w-4 rounded-full flex items-center justify-center animate-pulse">
+                3
+              </span>
+            </button>
+
             {/* 3. Speaker Mute Toggle */}
             <button 
               onClick={() => { playClickSound(); handleToggleMuted(); }}
@@ -1171,6 +1186,8 @@ export default function App() {
             profile={profile}
             saveProfileData={saveProfileData}
             triggerNotification={triggerNotification}
+            isOpen={isChatOpen}
+            setIsOpen={setIsChatOpen}
           />
         )}
 
