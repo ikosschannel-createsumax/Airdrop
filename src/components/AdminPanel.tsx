@@ -26,7 +26,9 @@ import {
   Check,
   X,
   Clock,
-  RefreshCw
+  RefreshCw,
+  MessageSquare,
+  Sliders
 } from "lucide-react";
 import { playClickSound, playUpgradeSound } from "../utils/audio";
 import { 
@@ -35,7 +37,11 @@ import {
   fetchAllUsersFromFirebase,
   fetchAllDepositRequestsFromFirebase,
   processDepositRequestInFirebase,
-  FirebaseDepositRequest
+  FirebaseDepositRequest,
+  fetchChatSettingsFromFirebase,
+  updateChatSettingsInFirebase,
+  updateUserProfileFieldsInFirebase,
+  FirebaseChatSettings
 } from "../utils/firebase";
 
 interface AdminPanelProps {
@@ -78,6 +84,18 @@ export default function AdminPanel({
   const [searchQuery, setSearchQuery] = useState("");
   const [newPasswords, setNewPasswords] = useState<Record<string, string>>({});
   const [showPasswordMap, setShowPasswordMap] = useState<Record<string, boolean>>({});
+
+  // Chat settings state
+  const [chatSettings, setChatSettings] = useState<FirebaseChatSettings>({
+    requiresPoints: true,
+    costPerMsg: 1,
+    defaultPoints: 0
+  });
+
+  // User input states for balances and chat points editing
+  const [editLdrBalances, setEditLdrBalances] = useState<Record<string, string>>({});
+  const [editRupiahBalances, setEditRupiahBalances] = useState<Record<string, string>>({});
+  const [editChatPoints, setEditChatPoints] = useState<Record<string, string>>({});
 
   const [depositRequests, setDepositRequests] = useState<FirebaseDepositRequest[]>([]);
   const [loadingRequests, setLoadingRequests] = useState<boolean>(false);
@@ -127,7 +145,8 @@ export default function AdminPanel({
                   ldrBalance: u.ldrBalance,
                   rupiahBalance: u.rupiahBalance,
                   highScore: u.highScore,
-                  registeredAt: u.registeredAt
+                  registeredAt: u.registeredAt,
+                  chatPoints: u.chatPoints ?? 0
                 }
               }));
               setRegisteredUsers(mapped);
@@ -161,7 +180,8 @@ export default function AdminPanel({
               ldrBalance: u.ldrBalance,
               rupiahBalance: u.rupiahBalance,
               highScore: u.highScore,
-              registeredAt: u.registeredAt
+              registeredAt: u.registeredAt,
+              chatPoints: u.chatPoints ?? 0
             }
           }));
           setRegisteredUsers(mapped);
@@ -171,6 +191,15 @@ export default function AdminPanel({
       .catch((err) => {
         console.warn("Could not sync users from Firestore on admin load:", err);
       });
+
+    // Load Chat Settings as well
+    fetchChatSettingsFromFirebase()
+      .then((settings) => {
+        if (settings) {
+          setChatSettings(settings);
+        }
+      })
+      .catch((e) => console.warn(e));
 
     // Also load pending deposits
     loadDepositRequests();
@@ -227,6 +256,75 @@ export default function AdminPanel({
 
     playUpgradeSound();
     triggerNotification(`❌ Account ${email} deleted successfully from database!`);
+  };
+
+  const handleSaveUserBalancesAndPoints = async (email: string) => {
+    const targetUser = registeredUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (!targetUser) return;
+
+    const nextLdr = editLdrBalances[email] !== undefined 
+      ? parseFloat(editLdrBalances[email]) 
+      : targetUser.profile?.ldrBalance;
+    const nextRupiah = editRupiahBalances[email] !== undefined 
+      ? parseFloat(editRupiahBalances[email]) 
+      : targetUser.profile?.rupiahBalance;
+    const nextChatPoints = editChatPoints[email] !== undefined 
+      ? parseInt(editChatPoints[email], 10) 
+      : targetUser.profile?.chatPoints;
+
+    if (isNaN(nextLdr) || isNaN(nextRupiah) || isNaN(nextChatPoints)) {
+      triggerNotification("⚠️ Nilai saldo atau poin obrolan tidak valid!");
+      return;
+    }
+
+    const updated = registeredUsers.map(user => {
+      if (user.email.toLowerCase() === email.toLowerCase()) {
+        return {
+          ...user,
+          profile: {
+            ...user.profile,
+            ldrBalance: nextLdr,
+            rupiahBalance: nextRupiah,
+            chatPoints: nextChatPoints
+          }
+        };
+      }
+      return user;
+    });
+    setRegisteredUsers(updated);
+    localStorage.setItem("ldr_registered_users", JSON.stringify(updated));
+
+    try {
+      const resp = await updateUserProfileFieldsInFirebase(email, {
+        ldrBalance: nextLdr,
+        rupiahBalance: nextRupiah,
+        chatPoints: nextChatPoints
+      });
+      if (resp) {
+        playUpgradeSound();
+        triggerNotification(`✅ Saldo & Poin Obrolan ${email} berhasil diupdate di database!`);
+      } else {
+        triggerNotification("❌ Gagal mengupdate data user di Firestore!");
+      }
+    } catch (err) {
+      console.error(err);
+      triggerNotification("❌ Error mengupdate Firestore.");
+    }
+  };
+
+  const handleSaveGlobalChatSettings = async () => {
+    try {
+      const success = await updateChatSettingsInFirebase(chatSettings);
+      if (success) {
+        playUpgradeSound();
+        triggerNotification("💬 Pengaturan Chat Global Berhasil Diupdate di Firestore!");
+      } else {
+        triggerNotification("❌ Gagal mengupdate pengaturan chat global.");
+      }
+    } catch (err) {
+      console.error(err);
+      triggerNotification("❌ Terjadi kendala saat update bos.");
+    }
   };
 
   const handleSaveNotification = (field: string) => {
@@ -421,6 +519,90 @@ export default function AdminPanel({
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* GLOBAL CHAT SETTINGS */}
+          <div className="border-t border-gray-850 pt-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <MessageSquare size={16} className="text-amber-400" />
+              <h3 className="text-xs font-black font-mono text-white tracking-widest uppercase">
+                💬 CHATROOM LIVE SERVICE CONTROL
+              </h3>
+            </div>
+
+            <div className="space-y-3 font-mono text-xs">
+              <div className="flex items-center justify-between bg-[#090b11] border border-gray-850 p-3 rounded-xl">
+                <div>
+                  <span className="block text-[11px] font-bold text-white uppercase">Status Batasan Obrolan</span>
+                  <span className="text-[10px] text-gray-500">Mewajibkan koin/poin obrolan atau gratis</span>
+                </div>
+                <div className="flex gap-1.5 bg-gray-950 p-1 rounded-lg border border-gray-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClickSound();
+                      setChatSettings(prev => ({ ...prev, requiresPoints: true }));
+                    }}
+                    className={`px-2.5 py-1 rounded text-[10px] font-bold transition ${
+                      chatSettings.requiresPoints 
+                        ? "bg-rose-500/20 text-rose-400 border border-rose-500/40 font-extrabold" 
+                        : "text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    Bayar/Poin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClickSound();
+                      setChatSettings(prev => ({ ...prev, requiresPoints: false }));
+                    }}
+                    className={`px-2.5 py-1 rounded text-[10px] font-bold transition ${
+                      !chatSettings.requiresPoints 
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-extrabold" 
+                        : "text-gray-500 hover:text-gray-300"
+                    }`}
+                  >
+                    Gratis
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] text-gray-400 uppercase font-bold">Biaya per Pesan (Poin)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={chatSettings.costPerMsg}
+                    onChange={(e) => setChatSettings(prev => ({ ...prev, costPerMsg: Math.max(1, parseInt(e.target.value) || 1) }))}
+                    className="w-full bg-[#090b11] border border-gray-850 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] text-gray-400 uppercase font-bold">Default Poin Chat Baru</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={chatSettings.defaultPoints}
+                    onChange={(e) => setChatSettings(prev => ({ ...prev, defaultPoints: Math.max(0, parseInt(e.target.value) || 0) }))}
+                    className="w-full bg-[#090b11] border border-gray-850 rounded-lg py-2 px-3 text-white focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  playClickSound();
+                  handleSaveGlobalChatSettings();
+                }}
+                className="w-full bg-amber-500 hover:bg-amber-600 text-black font-black uppercase py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 tracking-wider text-[11px]"
+              >
+                <Save size={14} /> SAVE GLOBAL CHAT CONFIG
+              </button>
             </div>
           </div>
 
@@ -633,108 +815,158 @@ export default function AdminPanel({
                 .map((user) => {
                   const isVisible = showPasswordMap[user.email] || false;
                   const isDemo = user.email.toLowerCase() === "demo@ldrcoin.com";
-
-                  return (
+                                   return (
                     <div 
                       key={user.email} 
-                      className="bg-[#090b11] border border-gray-850 p-4 rounded-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:border-amber-500/30 transition shadow-inner"
+                      className="bg-[#090b11] border border-gray-850 p-4 rounded-xl flex flex-col gap-4 hover:border-amber-500/30 transition shadow-inner"
                     >
-                      {/* Left side: user email & metadata badge */}
-                      <div className="min-w-0 flex-1 flex items-start gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
-                          <Users size={16} />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm font-bold text-white truncate text-glow-amber">
-                              {user.profile?.username || "Miner"}
-                            </span>
-                            <span className="text-[10px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-md font-bold uppercase">
-                              {user.profile?.minerRole || "Driller"}
-                            </span>
-                            {isDemo && (
-                              <span className="text-[9px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.2 rounded font-bold uppercase">
-                                DEMO ACCT
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        {/* Left side: user email & metadata badge */}
+                        <div className="min-w-0 flex-1 flex items-start gap-3 text-left">
+                          <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
+                            <Users size={16} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-sm font-bold text-white truncate text-glow-amber">
+                                {user.profile?.username || "Miner"}
                               </span>
-                            )}
-                          </div>
-                          <span className="text-xs text-gray-400 font-mono block truncate mt-0.5">
-                            {user.email}
-                          </span>
-
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[10px] font-mono text-gray-500">
-                            <span>Lv. {user.profile?.level || 1}</span>
-                            <span>•</span>
-                            <span className="text-amber-500 font-bold">🪙 {user.profile?.ldrBalance?.toFixed(2) || "0.00"} LDR</span>
-                            <span>•</span>
-                            <span className="text-emerald-400 font-bold">Rp {user.profile?.rupiahBalance?.toLocaleString("id-ID") || 0}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right side: Credentials view & Update Password Block */}
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-                        {/* VIEW & EDIT PASSWORD CONTROLS */}
-                        <div className="bg-[#111420] border border-gray-800 p-2.5 rounded-lg flex items-center justify-between gap-3 text-xs font-mono min-w-[210px]">
-                          <div className="text-[11px]">
-                            <span className="text-[8px] text-gray-500 uppercase block leading-none mb-1">CURRENT PASSWORD:</span>
-                            <span className="text-amber-400 font-bold">
-                              {isVisible ? user.passwordHash : "••••••••"}
+                              <span className="text-[10px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-md font-bold uppercase">
+                                {user.profile?.minerRole || "Driller"}
+                              </span>
+                              {isDemo && (
+                                <span className="text-[9px] font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20 px-1.5 py-0.2 rounded font-bold uppercase">
+                                  DEMO ACCT
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-400 font-mono block truncate mt-0.5">
+                              {user.email}
                             </span>
+
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[10px] font-mono text-gray-500">
+                              <span>Lv. {user.profile?.level || 1}</span>
+                              <span>•</span>
+                              <span className="text-amber-500 font-bold">🪙 {user.profile?.ldrBalance?.toFixed(2) || "0.00"} LDR</span>
+                              <span>•</span>
+                              <span className="text-emerald-400 font-bold">Rp {user.profile?.rupiahBalance?.toLocaleString("id-ID") || 0}</span>
+                              <span>•</span>
+                              <span className="text-indigo-450 font-bold">💬 {user.profile?.chatPoints ?? 0} Pts Chat</span>
+                            </div>
                           </div>
-                          
-                          <button
-                            type="button"
-                            onClick={() => {
-                              playClickSound();
-                              setShowPasswordMap(prev => ({ ...prev, [user.email]: !isVisible }));
-                            }}
-                            className="p-1 px-2 bg-gray-900 hover:bg-gray-850 hover:text-white border border-gray-800 text-gray-400 rounded transition flex items-center gap-1 text-[9px]"
-                            title={isVisible ? "Hide password" : "Show password"}
-                          >
-                            {isVisible ? <EyeOff size={11} /> : <Eye size={11} />}
-                            <span>{isVisible ? "HIDE" : "SHOW"}</span>
-                          </button>
                         </div>
 
-                        {/* RESET BLOCK */}
-                        <div className="flex items-center gap-2">
-                          <div className="relative">
-                            <input
-                              type="text"
-                              placeholder="Type new password..."
-                              value={newPasswords[user.email] || ""}
-                              onChange={(e) => setNewPasswords(prev => ({ ...prev, [user.email]: e.target.value }))}
-                              className="w-full sm:w-44 bg-gray-950 border border-gray-850 rounded-lg py-1.5 px-2.5 text-[11px] text-white font-mono placeholder-gray-600 focus:outline-none focus:border-amber-400"
-                            />
-                            <KeyRound size={11} className="absolute right-2.5 top-2.5 text-gray-600 pointer-events-none" />
+                        {/* Right side: Credentials view & Update Password Block */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
+                          {/* VIEW & EDIT PASSWORD CONTROLS */}
+                          <div className="bg-[#111420] border border-gray-800 p-2.5 rounded-lg flex items-center justify-between gap-3 text-xs font-mono min-w-[210px] text-left">
+                            <div className="text-[11px]">
+                              <span className="text-[8px] text-gray-500 uppercase block leading-none mb-1">CURRENT PASSWORD:</span>
+                              <span className="text-amber-400 font-bold">
+                                {isVisible ? user.passwordHash : "••••••••"}
+                              </span>
+                            </div>
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                playClickSound();
+                                setShowPasswordMap(prev => ({ ...prev, [user.email]: !isVisible }));
+                              }}
+                              className="p-1 px-2 bg-gray-900 hover:bg-gray-850 hover:text-white border border-gray-800 text-gray-400 rounded transition flex items-center gap-1 text-[9px]"
+                              title={isVisible ? "Hide password" : "Show password"}
+                            >
+                              {isVisible ? <EyeOff size={11} /> : <Eye size={11} />}
+                              <span>{isVisible ? "HIDE" : "SHOW"}</span>
+                            </button>
                           </div>
-                          
-                          <button
-                            type="button"
-                            onClick={() => {
-                              playClickSound();
-                              handleUpdatePassword(user.email, newPasswords[user.email] || "");
-                            }}
-                            className="py-1.5 px-3 bg-amber-500 hover:bg-amber-600 text-black font-black uppercase rounded-lg text-[10px] font-mono transition"
-                          >
-                            RESET
-                          </button>
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              playClickSound();
-                              handleDeleteUser(user.email);
-                            }}
-                            className="p-1.5 bg-red-950/20 text-red-400 border border-red-900/40 hover:bg-red-900 hover:text-white rounded-lg transition"
-                            title="Hapus akun user"
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          {/* RESET BLOCK */}
+                          <div className="flex items-center gap-2">
+                            <div className="relative">
+                              <input
+                                type="text"
+                                placeholder="Type new password..."
+                                value={newPasswords[user.email] || ""}
+                                onChange={(e) => setNewPasswords(prev => ({ ...prev, [user.email]: e.target.value }))}
+                                className="w-full sm:w-44 bg-gray-950 border border-gray-850 rounded-lg py-1.5 px-2.5 text-[11px] text-white font-mono placeholder-gray-600 focus:outline-none focus:border-amber-400"
+                              />
+                              <KeyRound size={11} className="absolute right-2.5 top-2.5 text-gray-600 pointer-events-none" />
+                            </div>
+                            
+                            <button
+                              type="button"
+                              onClick={() => {
+                                playClickSound();
+                                handleUpdatePassword(user.email, newPasswords[user.email] || "");
+                              }}
+                              className="py-1.5 px-3 bg-amber-500 hover:bg-amber-600 text-black font-black uppercase rounded-lg text-[10px] font-mono transition"
+                            >
+                              RESET
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                playClickSound();
+                                handleDeleteUser(user.email);
+                              }}
+                              className="p-1.5 bg-red-950/20 text-red-400 border border-red-900/40 hover:bg-red-900 hover:text-white rounded-lg transition"
+                              title="Hapus akun user"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </div>
-
                       </div>
+
+                      {/* Subrow for direct balance and chat points adjustments */}
+                      <div className="pt-3 border-t border-gray-850 grid grid-cols-1 sm:grid-cols-4 gap-3 text-left w-full font-mono text-[11px]">
+                        <div>
+                          <label className="block text-[9px] text-gray-450 uppercase font-black tracking-wider mb-1">Set LDR Balance</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder={user.profile?.ldrBalance?.toFixed(2) || "0.00"}
+                            value={editLdrBalances[user.email] ?? ""}
+                            onChange={(e) => setEditLdrBalances(prev => ({ ...prev, [user.email]: e.target.value }))}
+                            className="w-full bg-[#111420] border border-gray-800 rounded-lg py-1 px-2 text-white focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] text-gray-450 uppercase font-black tracking-wider mb-1">Set Rupiah Balance</label>
+                          <input
+                            type="number"
+                            placeholder={user.profile?.rupiahBalance?.toString() || "0"}
+                            value={editRupiahBalances[user.email] ?? ""}
+                            onChange={(e) => setEditRupiahBalances(prev => ({ ...prev, [user.email]: e.target.value }))}
+                            className="w-full bg-[#111420] border border-gray-800 rounded-lg py-1 px-2 text-white focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[9px] text-gray-450 uppercase font-black tracking-wider mb-1">Set Chat Points</label>
+                          <input
+                            type="number"
+                            placeholder={user.profile?.chatPoints?.toString() || "0"}
+                            value={editChatPoints[user.email] ?? ""}
+                            onChange={(e) => setEditChatPoints(prev => ({ ...prev, [user.email]: e.target.value }))}
+                            className="w-full bg-[#111420] border border-gray-800 rounded-lg py-1 px-2 text-white focus:outline-none focus:border-indigo-500"
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              playClickSound();
+                              handleSaveUserBalancesAndPoints(user.email);
+                            }}
+                            className="w-full py-1.5 px-3 bg-indigo-650 hover:bg-indigo-600 text-white font-extrabold uppercase rounded-lg text-[9px] tracking-widest transition flex items-center justify-center gap-1"
+                          >
+                            <Save size={11} /> SAVE VALUES
+                          </button>
+                        </div>
+                      </div>
+
                     </div>
                   );
                 })

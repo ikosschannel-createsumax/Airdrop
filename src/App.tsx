@@ -22,6 +22,8 @@ import AdminPanel from "./components/AdminPanel";
 import ReferralSystem from "./components/ReferralSystem";
 import DiceGame from "./components/DiceGame";
 import RunningReferralTicker from "./components/RunningReferralTicker";
+import GlobalChat from "./components/GlobalChat";
+import { ProfileEditModal, AppGuidebookModal } from "./components/ProfileAndGuide";
 import { setMuteState, getMuteState, playClickSound, playUpgradeSound } from "./utils/audio";
 import { syncUserProfileToFirebase } from "./utils/firebase";
 import { 
@@ -40,7 +42,8 @@ import {
   Wallet,
   Activity,
   Lock,
-  Dices
+  Dices,
+  User
 } from "lucide-react";
 
 export default function App() {
@@ -51,6 +54,10 @@ export default function App() {
   const [magnetCount, setMagnetCount] = useState<number>(0);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'merge_game' | 'rigs_automation' | 'stats_shop' | 'payout_system' | 'market_analytics' | 'admin_panel' | 'referral' | 'dice_game'>('merge_game');
+  
+  // Custom Edit Profile & Step-by-Step Guide modals
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+  const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
   
   // Admin Panel states
   const [adminQrisMethod, setAdminQrisMethod] = useState<'dynamic' | 'static'>(() => {
@@ -340,6 +347,9 @@ export default function App() {
               rupiahBalance: firebaseUser.rupiahBalance,
               highScore: firebaseUser.highScore,
               registeredAt: firebaseUser.registeredAt,
+              chatPoints: firebaseUser.chatPoints ?? 0,
+              birthDate: firebaseUser.birthDate || "",
+              linkedEmail: firebaseUser.linkedEmail || "",
             };
 
             let syncedRigs = userRigs;
@@ -907,6 +917,27 @@ export default function App() {
 
           {/* Interactive controls */}
           <div className="flex items-center gap-2.5">
+            {/* 1. Panduan / Application Guidebook Button */}
+            <button 
+              onClick={() => { playClickSound(); setIsGuideOpen(true); }}
+              className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/20 transition shadow flex items-center gap-1.5"
+              title="Panduan Kerja Aplikasi (Step-by-Step)"
+            >
+              <BookOpen size={15} />
+              <span className="hidden sm:inline font-bold font-mono text-[10px] tracking-wider">PANDUAN</span>
+            </button>
+
+            {/* 2. Edit Profile Action Button */}
+            <button 
+              onClick={() => { playClickSound(); setIsProfileModalOpen(true); }}
+              className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 hover:border-amber-400/50 transition shadow flex items-center gap-1.5"
+              title="Detail & Sunting Profil Penambang"
+            >
+              <User size={15} className="text-amber-400" />
+              <span className="hidden sm:inline font-bold font-mono text-[10px] tracking-wider">EDIT PROFIL</span>
+            </button>
+
+            {/* 3. Speaker Mute Toggle */}
             <button 
               onClick={() => { playClickSound(); handleToggleMuted(); }}
               className="p-3 rounded-xl bg-[#1d2334] border border-gray-750 text-gray-400 hover:text-amber-400 hover:bg-gray-800 transition shadow"
@@ -1134,6 +1165,31 @@ export default function App() {
             <span className="text-amber-400">COINS RATE: REALTIME PASSIF AUTO-SYNC</span>
           </div>
         </footer>
+
+        {profile && (
+          <GlobalChat 
+            profile={profile}
+            saveProfileData={saveProfileData}
+            triggerNotification={triggerNotification}
+          />
+        )}
+
+        {/* Edit Profile Modal Popup */}
+        {profile && (
+          <ProfileEditModal
+            isOpen={isProfileModalOpen}
+            onClose={() => setIsProfileModalOpen(false)}
+            profile={profile}
+            saveProfileData={saveProfileData}
+            triggerNotification={triggerNotification}
+          />
+        )}
+
+        {/* Step-by-Step App Guidebook Modal Popup */}
+        <AppGuidebookModal
+          isOpen={isGuideOpen}
+          onClose={() => setIsGuideOpen(false)}
+        />
 
       </div>
 

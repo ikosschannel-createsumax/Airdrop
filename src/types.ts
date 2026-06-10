@@ -14,6 +14,9 @@ export interface MinerProfile {
   rupiahBalance: number;
   highScore: number;
   registeredAt: string;
+  chatPoints?: number;
+  birthDate?: string;
+  linkedEmail?: string;
 }
 
 export interface OreDefinition {

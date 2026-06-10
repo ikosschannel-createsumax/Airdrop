@@ -14,7 +14,12 @@ import {
   updateDoc, 
   deleteDoc, 
   collection,
-  getDocFromServer
+  getDocFromServer,
+  onSnapshot,
+  addDoc,
+  query,
+  orderBy,
+  limit
 } from "firebase/firestore";
 import { MinerProfile, MiningRig, Achievement } from "../types";
 import firebaseConfig from "../../firebase-applet-config.json";
@@ -94,6 +99,9 @@ export interface FirebaseUserRecord {
   rupiahBalance: number;
   highScore: number;
   registeredAt: string;
+  chatPoints?: number;
+  birthDate?: string;
+  linkedEmail?: string;
   // Account-specific structures
   rigsJson?: string;
   achievementsJson?: string;
@@ -127,6 +135,9 @@ export async function syncUserProfileToFirebase(
     rupiahBalance: profile.rupiahBalance,
     highScore: profile.highScore,
     registeredAt: profile.registeredAt,
+    chatPoints: typeof profile.chatPoints === "number" ? profile.chatPoints : 0,
+    birthDate: profile.birthDate || "",
+    linkedEmail: profile.linkedEmail || "",
     ...(rigs && { rigsJson: JSON.stringify(rigs) }),
     ...(achievements && { achievementsJson: JSON.stringify(achievements) }),
     ...(typeof dynamiteCount === "number" && { dynamiteCount }),
@@ -301,4 +312,101 @@ export async function processDepositRequestInFirebase(
     handleFirestoreError(error, OperationType.UPDATE, path);
     return false;
   }
+}
+
+export interface FirebaseChatSettings {
+  requiresPoints: boolean;
+  costPerMsg: number;
+  defaultPoints: number;
+}
+
+export async function fetchChatSettingsFromFirebase(): Promise<FirebaseChatSettings> {
+  try {
+    const docRef = doc(db, "settings", "chat");
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return snap.data() as FirebaseChatSettings;
+    }
+  } catch (err) {
+    console.warn("Could not fetch chat settings from Firebase:", err);
+  }
+  return {
+    requiresPoints: true,
+    costPerMsg: 1,
+    defaultPoints: 0
+  };
+}
+
+export async function updateChatSettingsInFirebase(settings: FirebaseChatSettings): Promise<boolean> {
+  const path = "settings/chat";
+  try {
+    const docRef = doc(db, "settings", "chat");
+    await setDoc(docRef, settings);
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+    return false;
+  }
+}
+
+export async function updateUserProfileFieldsInFirebase(
+  email: string,
+  updatedFields: Partial<FirebaseUserRecord>
+): Promise<boolean> {
+  const docId = getFirebaseDocId(email);
+  const path = `users/${docId}`;
+  try {
+    const docRef = doc(db, "users", docId);
+    await updateDoc(docRef, updatedFields);
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, path);
+    return false;
+  }
+}
+
+export interface FirebaseChatMessage {
+  id?: string;
+  email: string;
+  username: string;
+  role: string;
+  avatar?: string;
+  message: string;
+  timestamp: number;
+}
+
+export async function sendChatMessageToFirebase(msg: FirebaseChatMessage): Promise<boolean> {
+  const path = "chat_messages";
+  try {
+    const colRef = collection(db, "chat_messages");
+    await addDoc(colRef, msg);
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+    return false;
+  }
+}
+
+export function subscribeToChatMessages(callback: (messages: FirebaseChatMessage[]) => void): () => void {
+  const colRef = collection(db, "chat_messages");
+  const q = query(colRef, orderBy("timestamp", "desc"), limit(40));
+  
+  return onSnapshot(q, (snapshot) => {
+    const messages: FirebaseChatMessage[] = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      messages.push({
+        id: doc.id,
+        email: data.email || "",
+        username: data.username || "Miner",
+        role: data.role || "Driller",
+        avatar: data.avatar || "",
+        message: data.message || "",
+        timestamp: data.timestamp || Date.now()
+      });
+    });
+    callback(messages.reverse());
+  }, (err) => {
+    console.error("Error listening to chat messages:", err);
+  });
 }

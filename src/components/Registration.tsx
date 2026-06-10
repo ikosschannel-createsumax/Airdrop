@@ -27,7 +27,8 @@ import { MinerProfile } from "../types";
 import { playClickSound, playUpgradeSound } from "../utils/audio";
 import { 
   syncUserProfileToFirebase, 
-  fetchAllUsersFromFirebase 
+  fetchAllUsersFromFirebase,
+  fetchChatSettingsFromFirebase
 } from "../utils/firebase";
 // @ts-ignore
 import bannerImg from "../assets/images/ldr_miner_fusion_banner_1779993845654.png";
@@ -385,15 +386,30 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
   };
 
   // Submit Simulated OTP verification code check
-  const handleVerifyOtpSubmit = (e: React.FormEvent) => {
+  const handleVerifyOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     playClickSound();
 
     if (userEnteredOtp === generatedOtp || userEnteredOtp === "2026") {
       playUpgradeSound();
       if (tempProfile) {
+        let startingChatPoints = 0;
+        try {
+          const chatSettings = await fetchChatSettingsFromFirebase();
+          if (chatSettings && typeof chatSettings.defaultPoints === "number") {
+            startingChatPoints = chatSettings.defaultPoints;
+          }
+        } catch (err) {
+          console.warn("Could not determine starting chat points:", err);
+        }
+
+        const profileWithChatPoints = {
+          ...tempProfile,
+          chatPoints: startingChatPoints
+        };
+
         // Save user details
-        saveUserCredentials(email, password, tempProfile);
+        saveUserCredentials(email, password, profileWithChatPoints);
         
         localStorage.setItem("ldr_active_email", email.toLowerCase().trim());
         setSuccessMessage(`New account for ${tempProfile.username} successfully registered and verified! Loading rig cavern...`);
@@ -401,7 +417,7 @@ export default function Registration({ onComplete, isMuted, onToggleMute }: Regi
         setUserEnteredOtp("");
         
         setTimeout(() => {
-          onComplete(tempProfile);
+          onComplete(profileWithChatPoints);
         }, 1500);
       }
     } else {
