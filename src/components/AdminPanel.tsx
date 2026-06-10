@@ -41,7 +41,8 @@ import {
   fetchChatSettingsFromFirebase,
   updateChatSettingsInFirebase,
   updateUserProfileFieldsInFirebase,
-  FirebaseChatSettings
+  FirebaseChatSettings,
+  sendChatMessageToFirebase
 } from "../utils/firebase";
 
 interface AdminPanelProps {
@@ -113,6 +114,54 @@ export default function AdminPanel({
       .finally(() => {
         setLoadingRequests(false);
       });
+  };
+
+  // States for live withdrawal broadcasting from Admin Panel
+  const [wdAlertNama, setWdAlertNama] = useState("Ahmad Gacor");
+  const [wdAlertJumlah, setWdAlertJumlah] = useState("Rp 150.000 (DANA)");
+  const [wdAlertEwallet, setWdAlertEwallet] = useState("E-Wallet DANA");
+  const [wdAlertMetode, setWdAlertMetode] = useState("Direct-Transfer Instant");
+  const [wdAlertTxId, setWdAlertTxId] = useState(() => "TN" + Math.floor(Math.random() * 90000000 + 10000000));
+  const [wdAlertTanggal, setWdAlertTanggal] = useState(() => {
+    const now = new Date();
+    const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    const day = now.getDate();
+    const month = months[now.getMonth()];
+    const year = now.getFullYear();
+    const timeStr = now.toLocaleTimeString("id-ID", { hour12: false });
+    return `${day} ${month} ${year} ${timeStr} WIB`;
+  });
+  const [wdAlertLink, setWdAlertLink] = useState("https://t.me/Minersgalaxycoinnsbot");
+
+  const handleBroadcastWdAlert = async () => {
+    try {
+      const formattedWdMsg = `[WD_ALERT]|${wdAlertTxId}|${wdAlertJumlah}|${wdAlertNama}|${wdAlertEwallet}|${wdAlertMetode}|${wdAlertTanggal}|${wdAlertLink}`;
+      const ok = await sendChatMessageToFirebase({
+        email: "system_status@ldrcoin.com",
+        username: "System Autopay",
+        role: "System Link",
+        message: formattedWdMsg,
+        timestamp: Date.now()
+      });
+      if (ok) {
+        playUpgradeSound();
+        triggerNotification(`🎉 Sukses memposting bukti penarikan ${wdAlertNama} ke Live Chat!`);
+        // Regenerate TXID and date for next use
+        setWdAlertTxId("TN" + Math.floor(Math.random() * 90000000 + 10000000));
+        const now = new Date();
+        const months = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+        const day = now.getDate();
+        const month = months[now.getMonth()];
+        const year = now.getFullYear();
+        const timeStr = now.toLocaleTimeString("id-ID", { hour12: false });
+        setWdAlertTanggal(`${day} ${month} ${year} ${timeStr} WIB`);
+      } else {
+        triggerNotification("❌ Gagal mengirim notifikasi bukti penarikan.");
+      }
+    } catch (err) {
+      console.error(err);
+      triggerNotification("❌ Error mengirim notifikasi bukti penarikan.");
+    }
   };
 
   // Process a member's pending deposit request
@@ -645,6 +694,118 @@ export default function AdminPanel({
                   This simulated QR code appears on the <strong className="text-white">PAYOUT & WITHDRAW</strong> tab when users choose QRIS during gas/RP deposit requests.
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* GENERATOR BUKTI PENARIKAN (LIVE CHAT BROADCAST) */}
+          <div className="bg-[#111420] border border-gray-850 rounded-2xl p-5 md:p-6 shadow-xl space-y-4">
+            <div className="flex items-center gap-2.5 border-b border-gray-850 pb-3">
+              <MessageSquare size={18} className="text-emerald-400" />
+              <h2 className="text-xs font-black font-mono text-white tracking-widest uppercase">
+                📢 GENERATOR BUKTI WD OBROLAN
+              </h2>
+            </div>
+
+            <p className="text-[10.5px] font-sans text-gray-400 leading-normal">
+              Buat dan kirim kartu notifikasi penarikan disetujui (Screenshot-Style) langsung ke ruang obrolan global.
+            </p>
+
+            <div className="space-y-2.5 font-mono text-[11px]">
+              <div>
+                <label className="block text-[9px] text-gray-500 uppercase font-black mb-1">Nama Penerima</label>
+                <input
+                  type="text"
+                  value={wdAlertNama}
+                  onChange={(e) => setWdAlertNama(e.target.value)}
+                  className="w-full bg-[#090b11] border border-gray-800 rounded-lg py-1.5 px-2.5 text-white focus:outline-none focus:border-emerald-400 text-xs"
+                  placeholder="Contoh: Ahmad Gacor"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[9px] text-gray-500 uppercase font-black mb-1">Jumlah WD</label>
+                <input
+                  type="text"
+                  value={wdAlertJumlah}
+                  onChange={(e) => setWdAlertJumlah(e.target.value)}
+                  className="w-full bg-[#090b11] border border-gray-800 rounded-lg py-1.5 px-2.5 text-white focus:outline-none focus:border-emerald-400 text-xs"
+                  placeholder="Contoh: Rp 150.000 (DANA)"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[9px] text-gray-500 uppercase font-black mb-1">E-Wallet / Bank</label>
+                  <input
+                    type="text"
+                    value={wdAlertEwallet}
+                    onChange={(e) => setWdAlertEwallet(e.target.value)}
+                    className="w-full bg-[#090b11] border border-gray-800 rounded-lg py-1.5 px-2.5 text-white focus:outline-none focus:border-emerald-400 text-xs"
+                    placeholder="E-Wallet DANA"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] text-gray-500 uppercase font-black mb-1">Metode</label>
+                  <input
+                    type="text"
+                    value={wdAlertMetode}
+                    onChange={(e) => setWdAlertMetode(e.target.value)}
+                    className="w-full bg-[#090b11] border border-gray-800 rounded-lg py-1.5 px-2.5 text-white focus:outline-none focus:border-emerald-400 text-xs"
+                    placeholder="Direct-Transfer Instant"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[9px] text-gray-500 uppercase font-black mb-1">ID Transaksi (TXID)</label>
+                <div className="flex gap-1">
+                  <input
+                    type="text"
+                    value={wdAlertTxId}
+                    onChange={(e) => setWdAlertTxId(e.target.value)}
+                    className="flex-1 bg-[#090b11] border border-gray-800 rounded-lg py-1.5 px-2.5 text-white font-mono focus:outline-none focus:border-emerald-400 text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playClickSound();
+                      setWdAlertTxId("TN" + Math.floor(Math.random() * 90000000 + 10000000));
+                    }}
+                    className="px-2 bg-[#181f2f] hover:bg-gray-800 border border-gray-800 hover:text-white text-gray-400 rounded-lg text-[10px] uppercase font-bold transition"
+                    title="Generate TXID Baru"
+                  >
+                    RAND
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[9px] text-gray-500 uppercase font-black mb-1">Tanggal & Waktu</label>
+                <input
+                  type="text"
+                  value={wdAlertTanggal}
+                  onChange={(e) => setWdAlertTanggal(e.target.value)}
+                  className="w-full bg-[#090b11] border border-gray-800 rounded-lg py-1.5 px-2.5 text-white focus:outline-none focus:border-emerald-400 text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[9px] text-gray-500 uppercase font-black mb-1">Link Tombol Kelanjutan</label>
+                <input
+                  type="text"
+                  value={wdAlertLink}
+                  onChange={(e) => setWdAlertLink(e.target.value)}
+                  className="w-full bg-[#090b11] border border-gray-800 rounded-lg py-1.5 px-2.5 text-white focus:outline-none focus:border-emerald-400 text-xs font-mono"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleBroadcastWdAlert}
+                className="w-full mt-2 bg-emerald-500 hover:bg-emerald-600 text-black font-black uppercase py-2.5 rounded-xl transition flex items-center justify-center gap-1.5 tracking-wider text-[11px]"
+              >
+                📢 POST KE LIVE CHAT
+              </button>
             </div>
           </div>
 

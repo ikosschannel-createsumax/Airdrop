@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from "react";
 import { MinerProfile, MiningRig } from "../types";
 import { playClickSound, playUpgradeSound } from "../utils/audio";
-import { createDepositRequestInFirebase } from "../utils/firebase";
+import { createDepositRequestInFirebase, sendChatMessageToFirebase } from "../utils/firebase";
 import { 
   Landmark, 
   Wallet, 
@@ -526,6 +526,17 @@ export default function PayoutSystem({
         localStorage.setItem(getUserKey("ldr_miner_alerts"), JSON.stringify(updatedAlerts));
         return updatedAlerts;
       });
+
+      // Automatically post real-time [WD_ALERT] to the global live chat system!
+      const timezoneDateStr = new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }) + " WIB";
+      const formattedWdMsg = `[WD_ALERT]|${newTxId}|${convertedText}|${profile.username || "Miner"}|e-Wallet ${selectedProvider}|Direct-Transfer Instant|${timezoneDateStr}|https://t.me/Minersgalaxycoinnsbot`;
+      sendChatMessageToFirebase({
+        email: "system_status@ldrcoin.com",
+        username: "System Autopay",
+        role: "System Link",
+        message: formattedWdMsg,
+        timestamp: Date.now()
+      }).catch(err => console.error("Error broadcasting withdrawal: ", err));
 
       playUpgradeSound();
       triggerNotification(`✅ PAYOUT COMPLETE: Mined assets of ${convertedText} transferred successfully.`);
