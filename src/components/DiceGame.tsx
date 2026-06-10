@@ -591,16 +591,29 @@ export default function DiceGame({ profile, onAddBalances, onUpdateHighScore, tr
     playClickSound();
     setPlayerReady(true);
     setIsWaitingForOpponentReady(true);
-    triggerNotification(`👍 Anda siap! Menunggu lawan bersedia...`);
+    triggerNotification(`👍 Anda siap! Menghubungkan nominal taruhan dengan lawan...`);
 
     // Simulate opponent ready confirmation after delay
     setTimeout(() => {
-      setOpponentReady(true);
-      setIsWaitingForOpponentReady(false);
-      triggerNotification(`🔥 Lawan READY! Dadu otomatis berputar dalam 10 detik atau klik MULAI PUTAR DADU!`);
-      playPowerupSound();
-      setCountdown(10); // Start 10 seconds automatic countdown
-    }, 1200);
+      // 25% chance of opponent automatically canceling or rejecting the bet
+      const shouldCancel = Math.random() < 0.25;
+
+      if (shouldCancel) {
+        setIsWaitingForOpponentReady(false);
+        setPlayerReady(false);
+        setOpponentReady(false);
+        setCountdown(null);
+        setSelectedOpponent(null); // Force disconnection
+        triggerNotification(`💀 Lawan membatalkan tanding otomatis karena taruhan koin tidak setuju / TIDAK READY!`);
+        playGameOverSound();
+      } else {
+        setOpponentReady(true);
+        setIsWaitingForOpponentReady(false);
+        triggerNotification(`🔥 Lawan SETUJU & Taruhan Disetarakan! Dadu otomatis berputar dalam 10 detik atau klik MULAI PUTAR DADU!`);
+        playPowerupSound();
+        setCountdown(10); // Start 10 seconds automatic countdown
+      }
+    }, 1500);
   };
 
   // 2.5. REMATCH BUTTON ACTION - Resets readiness to let you play again with same matched player
@@ -1013,6 +1026,21 @@ export default function DiceGame({ profile, onAddBalances, onUpdateHighScore, tr
                   {/* Cyber Dice A style */}
                   {renderCyberDice(isRolling ? tempMyRoll : (myRoll || 1), false, isRolling)}
 
+                  {/* Player bet lock status */}
+                  {selectedOpponent && (
+                    <div className="mt-1 flex flex-col items-center">
+                      {playerReady ? (
+                        <span className="text-[9px] font-mono text-emerald-400 font-extrabold uppercase bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/20">
+                          🔒 Taruhan Dikunci: {betAmountStr} {betCurrency.toUpperCase()}
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-mono text-rose-400 font-bold uppercase bg-rose-500/5 px-2 py-0.5 rounded border border-rose-500/20">
+                          ⏳ Belum Dikunci: NOT READY
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   <div className="mt-2 text-center h-6">
                     {selectedOpponent ? (
                       playerReady ? (
@@ -1077,6 +1105,23 @@ export default function DiceGame({ profile, onAddBalances, onUpdateHighScore, tr
                       {/* Cyber Dice B style */}
                       {renderCyberDice(isRolling ? tempOpponentRoll : (opponentRoll || 1), true, isRolling)}
 
+                      {/* Opponent bet equation status */}
+                      <div className="mt-1 flex flex-col items-center">
+                        {opponentReady ? (
+                          <span className="text-[9px] font-mono text-emerald-400 font-extrabold uppercase bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/25">
+                            🔒 Taruhan Setara: {betAmountStr} {betCurrency.toUpperCase()}
+                          </span>
+                        ) : isWaitingForOpponentReady ? (
+                          <span className="text-[9px] font-mono text-amber-400 font-bold uppercase animate-pulse">
+                            ⚖️ Mengevaluasi Taruhan...
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-mono text-rose-400 font-bold uppercase bg-rose-500/5 px-2 py-0.5 rounded border border-rose-500/20">
+                            ⏳ Belum Setara: NOT READY
+                          </span>
+                        )}
+                      </div>
+
                       <div className="mt-2 text-center h-6">
                         {opponentReady ? (
                           <span className="inline-flex items-center gap-1.5 text-[10px] font-mono font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/35 px-2.5 py-1 rounded-full shadow-[0_0_12px_rgba(16,185,129,0.15)] uppercase">
@@ -1125,7 +1170,10 @@ export default function DiceGame({ profile, onAddBalances, onUpdateHighScore, tr
                     <span className="text-xs font-bold text-rose-400 uppercase tracking-widest block font-mono">BATTLE DEFEAT 💀</span>
                     <h4 className="text-xl font-black text-white mt-1 uppercase">ANDA KALAH DUEL</h4>
                     <p className="text-[11px] text-gray-300 mt-1 font-mono">
-                      Dadu lawan <strong className="text-amber-400">[{opponentRoll}]</strong> melampaui dadu Anda <strong className="text-blue-400">[{myRoll}]</strong>. Rantai streak beruntun Anda gugur. Latih taktik dan hantam balik!
+                      Dadu lawan <strong className="text-amber-400">[{opponentRoll}]</strong> melampaui dadu Anda <strong className="text-blue-400">[{myRoll}]</strong>. Rantai streak beruntun Anda gugur.
+                      <span className="block mt-2 text-rose-400 font-extrabold animate-pulse uppercase text-[10px] tracking-wide">
+                        ⚠️ DADU KURANGI KOIN: -{betAmountStr} {betCurrency.toUpperCase()} TELAH DIKURANGI DARI BALANCE ANDA!
+                      </span>
                     </p>
                   </div>
                 )}
